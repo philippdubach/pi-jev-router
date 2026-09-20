@@ -61,7 +61,7 @@ export const ROLE_MODELS: Record<WorkKind, string> = {
 
 export const ROLE_THINKING: Record<WorkKind, string> = {
   planning: "high",
-  code: "medium",
+  code: "high",
   writing: "low",
   other: "medium",
 };

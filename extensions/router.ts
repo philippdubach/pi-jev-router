@@ -96,7 +96,7 @@ export default function (pi: ExtensionAPI) {
     const classification = await classify(envelope, ctx.signal);
     const available = !classification.classifierUnavailable;
     const recommendation = recommend(classification.answers as any, DEFAULT_POLICY, available);
-    const note = !available ? `classifier unavailable (${classification.error}) — static fallback` : undefined;
+    let note = !available ? `classifier unavailable (${classification.error}) — static fallback` : undefined;
 
     // Respect pins.
     if (pinnedModelId) recommendation.modelId = pinnedModelId;
@@ -128,6 +128,7 @@ export default function (pi: ExtensionAPI) {
 
         const switchedOk = await switchModel(ctx, target, recommendation.tierIndex, roleThinking);
         if (switchedOk === true) switched = true;
+        if (switchedOk === undefined) note = `target model unavailable in Pi catalog; restart Pi after configuring ${target}`;
 
         // Writing tasks get the humanizer + STE style directive injected into the turn.
         if (workKind === "writing") {
@@ -162,7 +163,8 @@ export default function (pi: ExtensionAPI) {
       (m: any) => m.provider === "openrouter" && m.id === openrouterModelId,
     );
     if (!candidate) {
-      // Not available via pi's openrouter provider — record, stay put.
+      // Not available via Pi's OpenRouter provider — never pretend it switched.
+      ctx.ui.notify(`jev-router: ${openrouterModelId} is unavailable in Pi's model catalog — staying on ${current?.id ?? "current model"}`, "warning");
       return undefined;
     }
     // Context-downgrade guard: current estimated context must fit target window.

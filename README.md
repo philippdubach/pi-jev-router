@@ -23,6 +23,19 @@ pi -e ./extensions/router.ts          # or install into ~/.pi/agent/packages
 Requires an OpenRouter account. The classifier uses `OPENROUTER_API_KEY`, falling back to the
 credential Pi stores in `~/.pi/agent/auth.json`.
 
+### One-time Pareto registration
+
+Pi 0.85.1's built-in OpenRouter catalogue does not include `openrouter/pareto-code`. Add the model
+entry from `config/models.openrouter.json` into `~/.pi/agent/models.json`, then **restart Pi**. This
+machine is already configured. Verify it with:
+
+```bash
+pi --provider openrouter --model openrouter/pareto-code --thinking high -p 'Reply exactly: PARETO PI OK'
+```
+
+The model's router-level catalogue price is unknown (`-1`), so its Pi cost estimate is zero. Treat
+OpenRouter's returned generation cost—not Pi's estimate—as authoritative.
+
 ## Commands
 
 | Command | Effect |
@@ -45,7 +58,7 @@ The router automatically classifies every top-level task and applies your prefer
 | Role | Target | Thinking | Notes |
 |---|---|---|---|
 | **Planning** | `anthropic/claude-fable-5.1` | high | Frontier intelligence with superior planning capabilities |
-| **Code / review** | `openrouter/pareto-code` | medium | OpenRouter expert Pareto coding router |
+| **Code / review** | `openrouter/pareto-code` | high | OpenRouter expert Pareto coding router |
 | **Writing / prose** | `openai/gpt-5.4-mini` | low | Fast OpenAI model + **automatic /humanizer & Simplified Technical English (STE) style directive** |
 | **Other** | tier-based (`DEFAULT_POLICY`) | by tier | Complexity/risk-driven tier assignment |
 
