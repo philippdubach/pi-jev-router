@@ -44,6 +44,7 @@ OpenRouter's returned generation cost—not Pi's estimate—as authoritative.
 | `/router shadow` | Recommend only (default) |
 | `/router auto` | Switch models at task boundaries via `pi.setModel()` |
 | `/router off` | Disable |
+| `/router profile <name>` | Select profile: `pareto_code` (default) or `empirical_cost` |
 | `/router pin <id>` | Force a specific OpenRouter model id |
 | `/router budget <usd>` | Session spend cap for auto mode |
 | `/router test` | Classify a sample task end-to-end |
@@ -70,6 +71,34 @@ You never need to run `/chief start` manually:
 3. Writing tasks automatically receive the humanizer and STE rules prepended to their system prompt.
 
 The `/chief` command remains available for inspecting the durable SQLite task board (`/chief board`), checking events (`/chief events <id>`), or running independent verification checks (`/chief verify <id> <cmd>`).
+
+## Benchmarks
+
+A structured execution benchmark suite is included in `eval/`. It dispatches separate, isolated `pi` sessions across diverse tasks with independent verifiers:
+
+- **Code tasks**: LRU Cache with TTL, SemVer comparator, async retry queue (verified by unit test exit codes)
+- **Planning tasks**: Distributed rate limiter architecture (verified by static AST/technical criteria)
+- **Writing tasks**: Technical postmortems (verified by automated STE sentence-length and AI trope linter)
+
+Run the benchmark suite:
+
+```bash
+# Run all benchmark tasks across baseline and role router:
+node --experimental-strip-types eval/index.ts
+
+# Run a single task:
+node --experimental-strip-types eval/index.ts --task=code_semver_sort
+node --experimental-strip-types eval/index.ts --task=write_incident_postmortem
+node --experimental-strip-types eval/index.ts --task=plan_distributed_ratelimiter
+```
+
+Detailed JSON and Markdown reports are saved to `eval/results/`.
+
+### Empirical benchmark findings
+
+1. **Technical Writing / Prose**: `openai/gpt-5.4-mini` (low thinking) with STE & Humanizer directives achieved **89% cost savings** ($0.012 vs $0.113) and **2.7x faster** response time while passing 100% of STE and AI-trope linter checks.
+2. **Architecture & Planning**: `anthropic/claude-sonnet-5` (high thinking) consistently passed 100% of complex multi-region architecture verifications in ~100s without timeout ($0.17/task). `claude-fable-5.1` produced massive reasoning traces that frequently hit timeouts (>180s).
+3. **Coding / Bug fixing**: `openrouter/pareto-code` achieved 100% test pass rate. Unconstrained, it resolves to `claude-fable-5.1` ($0.70/task). Running under `/router profile empirical_cost` routes code to `claude-sonnet-5`, delivering the exact same 100% test pass rate at **88% lower cost** ($0.08 - $0.10/task).
 
 ## Tests
 

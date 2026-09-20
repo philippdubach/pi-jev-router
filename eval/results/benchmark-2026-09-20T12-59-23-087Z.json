@@ -1,0 +1,62 @@
+{
+  "summaries": [
+    {
+      "strategy": "fixed_frontier",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.09249850000000001,
+      "costPerSuccessUsd": 0.09249850000000001,
+      "avgLatencyMs": 22235,
+      "totalTokens": 111285
+    },
+    {
+      "strategy": "router_role",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0,
+      "costPerSuccessUsd": 0,
+      "avgLatencyMs": 28116,
+      "totalTokens": 88906
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_semver_sort",
+      "strategy": "fixed_frontier",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "passed": true,
+      "verifierOutput": "Command passed: Running SemVer tests...\nALL SEMVER TESTS PASSED\n",
+      "latencyMs": 22235,
+      "tokens": {
+        "input": 10,
+        "output": 1698,
+        "cacheRead": 86280,
+        "cacheWrite": 23297,
+        "total": 111285
+      },
+      "costUsd": 0.09249850000000001,
+      "turns": 5
+    },
+    {
+      "taskId": "code_semver_sort",
+      "strategy": "router_role",
+      "modelUsed": "openrouter/pareto-code",
+      "thinkingUsed": "high",
+      "passed": true,
+      "verifierOutput": "Command passed: Running SemVer tests...\nALL SEMVER TESTS PASSED\n",
+      "latencyMs": 28116,
+      "tokens": {
+        "input": 87334,
+        "output": 1572,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 88906
+      },
+      "costUsd": 0,
+      "turns": 4
+    }
+  ]
+}

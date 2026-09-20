@@ -1,4 +1,4 @@
-import { ROLE_MODELS, ROLE_THINKING, resolveWorkKind } from "../src/selector.ts";
+import { PROFILE_MODELS, ROLE_THINKING, resolveWorkKind } from "../src/selector.ts";
 
 const cases: Array<[string, string, string]> = [
   ["Plan the rollout strategy for an OAuth migration", "architecture", "planning"],
@@ -15,13 +15,19 @@ for (const [prompt, category, expected] of cases) {
   if (!ok) failed++;
 }
 
+const paretoModels = PROFILE_MODELS.pareto_code;
+const empiricalModels = PROFILE_MODELS.empirical_cost;
+
 const roleAssertions = [
-  ROLE_MODELS.planning === "anthropic/claude-fable-5.1",
+  paretoModels.planning === "anthropic/claude-sonnet-5",
+  paretoModels.code === "openrouter/pareto-code",
+  paretoModels.writing === "openai/gpt-5.4-mini",
+  empiricalModels.code === "anthropic/claude-sonnet-5",
   ROLE_THINKING.planning === "high",
-  ROLE_MODELS.code === "openrouter/pareto-code",
-  ROLE_THINKING.code === "high",
-  ROLE_MODELS.writing === "openai/gpt-5.4-mini",
+  ROLE_THINKING.code === "medium",
   ROLE_THINKING.writing === "low",
 ];
-console.log(roleAssertions.every(Boolean) ? "PASS role policy" : "FAIL role policy");
-process.exit(failed || !roleAssertions.every(Boolean) ? 1 : 0);
+
+const allPassed = roleAssertions.every(Boolean);
+console.log(allPassed ? "PASS role policy" : "FAIL role policy");
+process.exit(failed || !allPassed ? 1 : 0);

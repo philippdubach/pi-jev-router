@@ -1,0 +1,62 @@
+{
+  "summaries": [
+    {
+      "strategy": "fixed_frontier",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.1784629,
+      "costPerSuccessUsd": 0.1784629,
+      "avgLatencyMs": 116835,
+      "totalTokens": 81276
+    },
+    {
+      "strategy": "router_role",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.16734810000000003,
+      "costPerSuccessUsd": 0.16734810000000003,
+      "avgLatencyMs": 106229,
+      "totalTokens": 59203
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "fixed_frontier",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 116835,
+      "tokens": {
+        "input": 6,
+        "output": 9788,
+        "cacheRead": 42667,
+        "cacheWrite": 28815,
+        "total": 81276
+      },
+      "costUsd": 0.1784629,
+      "turns": 3
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "router_role",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 106229,
+      "tokens": {
+        "input": 4,
+        "output": 9253,
+        "cacheRead": 21763,
+        "cacheWrite": 28183,
+        "total": 59203
+      },
+      "costUsd": 0.16734810000000003,
+      "turns": 2
+    }
+  ]
+}

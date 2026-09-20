@@ -1,0 +1,63 @@
+{
+  "summaries": [
+    {
+      "strategy": "fixed_frontier",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.1698864,
+      "costPerSuccessUsd": 0.1698864,
+      "avgLatencyMs": 109379,
+      "totalTokens": 59541
+    },
+    {
+      "strategy": "router_role",
+      "totalTasks": 1,
+      "passedTasks": 0,
+      "passRate": 0,
+      "totalCostUsd": 0.24682500000000002,
+      "costPerSuccessUsd": 0.24682500000000002,
+      "avgLatencyMs": 180004,
+      "totalTokens": 20607
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "fixed_frontier",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 109379,
+      "tokens": {
+        "input": 4,
+        "output": 9480,
+        "cacheRead": 21767,
+        "cacheWrite": 28290,
+        "total": 59541
+      },
+      "costUsd": 0.1698864,
+      "turns": 2
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "router_role",
+      "modelUsed": "anthropic/claude-fable-5.1",
+      "thinkingUsed": "medium",
+      "passed": false,
+      "verifierOutput": "Output file not found. Checked: /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u7qbp/router_role/plan_distributed_ratelimiter/plan.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u7qbp/router_role/plan_distributed_ratelimiter/architecture.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u7qbp/router_role/plan_distributed_ratelimiter/rate-limiter.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u7qbp/router_role/plan_distributed_ratelimiter/output.md",
+      "latencyMs": 180004,
+      "tokens": {
+        "input": 4,
+        "output": 102,
+        "cacheRead": 1190,
+        "cacheWrite": 19311,
+        "total": 20607
+      },
+      "costUsd": 0.24682500000000002,
+      "turns": 1,
+      "error": "Execution timed out"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "summaries": [
+    {
+      "strategy": "fixed_frontier",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.18063130000000002,
+      "costPerSuccessUsd": 0.18063130000000002,
+      "avgLatencyMs": 115805,
+      "totalTokens": 81686
+    },
+    {
+      "strategy": "router_role",
+      "totalTasks": 1,
+      "passedTasks": 0,
+      "passRate": 0,
+      "totalCostUsd": 0,
+      "costPerSuccessUsd": 0,
+      "avgLatencyMs": 441,
+      "totalTokens": 0
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "fixed_frontier",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 115805,
+      "tokens": {
+        "input": 6,
+        "output": 9938,
+        "cacheRead": 42659,
+        "cacheWrite": 29083,
+        "total": 81686
+      },
+      "costUsd": 0.18063130000000002,
+      "turns": 3
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "router_role",
+      "modelUsed": "anthropic/claude-fable-5.1",
+      "thinkingUsed": "medium",
+      "passed": false,
+      "verifierOutput": "Output file not found. Checked: /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u4okw/router_role/plan_distributed_ratelimiter/plan.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u4okw/router_role/plan_distributed_ratelimiter/architecture.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u4okw/router_role/plan_distributed_ratelimiter/rate-limiter.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mu9u4okw/router_role/plan_distributed_ratelimiter/output.md",
+      "latencyMs": 441,
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0
+      },
+      "costUsd": 0,
+      "turns": 1
+    }
+  ]
+}

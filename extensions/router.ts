@@ -21,7 +21,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
-import { DEFAULT_POLICY, recommend, recommendByRole, resolveWorkKind, ROLE_MODELS, ROLE_THINKING, type Recommendation, type WorkKind } from "../src/selector.ts";
+import { DEFAULT_POLICY, recommend, recommendByRole, resolveWorkKind, PROFILE_MODELS, ROLE_THINKING, type Recommendation, type WorkKind, type RouterProfile } from "../src/selector.ts";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
@@ -32,6 +32,7 @@ type Mode = "shadow" | "auto" | "off";
 
 export default function (pi: ExtensionAPI) {
   let mode: Mode = "shadow";
+  let profile: RouterProfile = "pareto_code";
   let pinnedModelId: string | undefined; // explicit /router pin
   let manualPin: string | undefined;     // user's own /model change since last routing
   let sessionBudgetUsd: number | undefined;
@@ -45,11 +46,12 @@ export default function (pi: ExtensionAPI) {
 
   const showStatus = (ctx: any) => {
     const label = mode === "shadow" ? "SHADOW" : mode === "auto" ? "AUTO" : "OFF";
+    const prof = mode === "auto" ? `[${profile}]` : "";
     const pin = pinnedModelId ? ` · pinned:${pinnedModelId}` : "";
     const budget = sessionBudgetUsd !== undefined ? ` · $${sessionSpendUsd.toFixed(4)}/$${sessionBudgetUsd}` : "";
     ctx.ui.setStatus(
       "jev-router",
-      `${label}${pin} · ${lastDecision ? lastDecision.recommendation.modelId : "idle"}`,
+      `${label}${prof}${pin} · ${lastDecision ? lastDecision.recommendation.modelId : "idle"}`,
     );
   };
 
@@ -120,7 +122,7 @@ export default function (pi: ExtensionAPI) {
         const workKind = resolveWorkKind(undefined, category, event.prompt);
 
         // Map workKind to its role-specific model and thinking level.
-        const roleModel = workKind === "other" ? undefined : ROLE_MODELS[workKind];
+        const roleModel = workKind === "other" ? undefined : PROFILE_MODELS[profile][workKind];
         const roleThinking = workKind === "other" ? undefined : ROLE_THINKING[workKind];
         const target = roleModel ?? recommendation.modelId;
         recommendation.modelId = target;
@@ -257,8 +259,18 @@ export default function (pi: ExtensionAPI) {
           applyMode(ctx);
           ctx.ui.notify("jev-router: disabled", "info");
           break;
+        case "profile": {
+          const p = parts[1] as RouterProfile;
+          if (p === "pareto_code" || p === "empirical_cost") {
+            profile = p;
+            applyMode(ctx);
+            ctx.ui.notify(`jev-router: profile set to ${p}`, "info");
+          } else {
+            ctx.ui.notify(`current profile: ${profile} — usage: /router profile pareto_code | empirical_cost`, "info");
+          }
+          break;
+        }
         case "pin": {
-          const id = parts.slice(1).join(" ").trim();
           if (!id) {
             ctx.ui.notify(pinnedModelId ? `pinned: ${pinnedModelId}` : "no pin — usage: /router pin <openrouter-model-id>", "info");
             break;
@@ -302,7 +314,7 @@ export default function (pi: ExtensionAPI) {
         }
         default: {
           const lines = [
-            `mode: ${mode}`,
+            `mode: ${mode} (profile: ${profile})`,
             `pin: ${pinnedModelId ?? "none"} · manual model change: ${manualPin ?? "none"}`,
             `budget: ${sessionBudgetUsd !== undefined ? "$" + sessionBudgetUsd : "unset"} · spent $${sessionSpendUsd.toFixed(4)}`,
             lastDecision ? `last: ${lastDecision.recommendation.modelId} (${lastDecision.recommendation.reason})` : "no decision yet",
