@@ -1,5 +1,5 @@
 // Pareto frontier — run: node --experimental-strip-types tests/frontier.test.ts
-import { dominates, nondominated, tangency, type Scored } from "../src/frontier.ts";
+import { dominates, nondominated, knee, tangency, type Scored } from "../src/frontier.ts";
 
 let failed = 0;
 const check = (name: string, ok: boolean) => {
@@ -34,15 +34,26 @@ check("ties are all non-dominated", nondominated(allEqual).length === 2);
 const one = [s("only", 0.42, 3, 7)];
 check("one dominator collapses the set", nondominated([...one, s("worse", 0.1, 9, 9)]).length === 1);
 
+// --- knee ---
 const frontier = nondominated(mixed);
-// Selection is monotonic in lambda: quality first, then balance, then price.
-// The mid/cheap crossover on this fixture sits at lambda ~= 5.08.
+check("knee is the best-balanced point", knee(frontier)!.id === "mid");
+check("knee ignores a two-point frontier", knee([s("a", 0.2, 0.01, 1), s("b", 0.9, 1, 1)]) === undefined);
+check("knee of empty frontier is undefined", knee([]) === undefined);
+const collinear = [s("a", 0.5, 0.01, 1), s("b", 0.6, 0.1, 1), s("c", 0.7, 1.0, 1)];
+check("knee of a flat frontier is undefined", knee(collinear) === undefined);
+
+// --- tangency (log ratio) ---
+// Cost is a ratio, so lambda trades quality for doublings of cost.
 check("zero lambda picks strong", tangency(frontier, 0, 0)!.pick.id === "strong-costly");
-check("mid lambda picks mid", tangency(frontier, 2.0, 0)!.pick.id === "mid");
-check("high lambda picks cheap", tangency(frontier, 20.0, 0)!.pick.id === "cheap-weak");
+check("a small lambda still picks strong", tangency(frontier, 0.05, 0)!.pick.id === "strong-costly");
+check("a large lambda picks cheap", tangency(frontier, 0.5, 0)!.pick.id === "cheap-weak");
+check("a huge lambda picks cheap", tangency(frontier, 20, 0)!.pick.id === "cheap-weak");
 check("empty frontier returns undefined", tangency([], 1, 1) === undefined);
 
 const flatCost = [s("a", 0.2, 1, 1), s("b", 0.8, 1, 1)];
 check("constant axis is inert", tangency(flatCost, 9, 9)!.pick.id === "b");
+
+const withFree = [s("free", 0.7, 0, 1), s("paid", 0.6, 0.1, 1)];
+check("a free model does not break the ratio", tangency(withFree, 5, 0)!.pick.id === "free");
 
 process.exit(failed ? 1 : 0);

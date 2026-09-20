@@ -1,4 +1,4 @@
-import { PROFILE_MODELS, ROLE_THINKING, resolveWorkKind } from "../src/selector.ts";
+import { PINNED_MODELS, PROFILE_WEIGHTS, ROLE_THINKING, resolveWorkKind } from "../src/selector.ts";
 
 const cases: Array<[string, string, string]> = [
   ["Plan the rollout strategy for an OAuth migration", "architecture", "planning"],
@@ -15,8 +15,10 @@ for (const [prompt, category, expected] of cases) {
   if (!ok) failed++;
 }
 
-const paretoModels = PROFILE_MODELS.pareto_code;
-const empiricalModels = PROFILE_MODELS.empirical_cost;
+// Pinned profiles keep the role models. The frontier profile is weightless:
+// it picks the knee point, so it has no per-role model table.
+const paretoModels = PINNED_MODELS.pareto_code;
+const empiricalModels = PINNED_MODELS.empirical_cost;
 
 const roleAssertions = [
   paretoModels.planning === "anthropic/claude-sonnet-5",
@@ -26,6 +28,7 @@ const roleAssertions = [
   ROLE_THINKING.planning === "high",
   ROLE_THINKING.code === "medium",
   ROLE_THINKING.writing === "low",
+  PROFILE_WEIGHTS.writing.lambda > PROFILE_WEIGHTS.planning.lambda,
 ];
 
 const allPassed = roleAssertions.every(Boolean);

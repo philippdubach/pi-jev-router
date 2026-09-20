@@ -2,6 +2,11 @@
  * Discrete Pareto frontier over quality, cost and latency.
  *
  * Quality rises. Cost and latency fall. Pure functions only.
+ *
+ * Two selection rules live here:
+ * - `knee` picks the best-balanced frontier point with no weights at all.
+ * - `tangency` picks by a weighted value function. It is the fallback for
+ *   frontiers too small or too flat for a knee to mean anything.
  */
 
 export interface Scored {
@@ -25,18 +30,61 @@ export function nondominated(items: Scored[]): Scored[] {
   return items.filter((candidate) => !items.some((other) => dominates(other, candidate)));
 }
 
-function minMax(values: number[]): (v: number) => number {
-  const lo = Math.min(...values);
-  const hi = Math.max(...values);
-  const span = hi - lo;
-  // A constant axis carries no information, so it normalises to zero.
-  if (!Number.isFinite(span) || span === 0) return () => 0;
-  return (v: number) => (v - lo) / span;
+const EPS = 1e-9;
+
+/** log2 of a cost ratio, anchored at the cheapest positive cost. Free models sit at zero. */
+function logRatio(value: number, floor: number): number {
+  if (floor <= 0) return 0;
+  return Math.log2(Math.max(value, floor) / floor);
 }
 
 /**
- * Pick the point on the frontier that maximises q - lambda*c - mu*t.
- * Each axis is normalised across the frontier, not across the catalog.
+ * The knee point: the frontier member farthest from the chord that joins the
+ * cheapest and the dearest member, in (quality, log cost) space.
+ *
+ * Returns `undefined` when a knee is not defined: fewer than three members, no
+ * cost spread, no quality spread, or a flat (collinear) frontier. The caller
+ * decides the fallback.
+ */
+export function knee(frontier: Scored[]): Scored | undefined {
+  if (frontier.length < 3) return undefined;
+
+  const positiveCosts = frontier.map((m) => m.c).filter((c) => c > 0);
+  const cMin = positiveCosts.length ? Math.min(...positiveCosts) : 0;
+  const cMax = Math.max(...frontier.map((m) => m.c));
+  if (cMin <= 0 || cMax <= cMin) return undefined;
+
+  const qs = frontier.map((m) => m.q);
+  const qMin = Math.min(...qs);
+  const qMax = Math.max(...qs);
+  if (qMax <= qMin) return undefined;
+
+  const denom = Math.log2(cMax / cMin);
+  const x = frontier.map((m) => logRatio(m.c, cMin) / denom);
+  const y = frontier.map((m) => (m.q - qMin) / (qMax - qMin));
+
+  const lo = x.indexOf(Math.min(...x));
+  const hi = x.indexOf(Math.max(...x));
+  const dx = x[hi] - x[lo];
+  const dy = y[hi] - y[lo];
+  const len = Math.hypot(dx, dy);
+  if (len < EPS) return undefined;
+
+  const dist = x.map((v, i) => Math.abs(dy * (v - x[lo]) - dx * (y[i] - y[lo])) / len);
+  const maxDist = Math.max(...dist);
+  if (maxDist <= EPS) return undefined;
+
+  const ties = frontier.filter((_, i) => maxDist - dist[i] <= EPS);
+  ties.sort((a, b) => b.q - a.q || a.c - b.c || a.id.localeCompare(b.id));
+  return ties[0];
+}
+
+/**
+ * Pick the point that maximises q - lambda*log2(c/c_min) - mu*log2(t/t_min).
+ *
+ * The cost and latency terms are ratios, so lambda is quality surrendered per
+ * doubling of cost. A free model has no cost term. A frontier with no cost
+ * spread has an inert cost term.
  */
 export function tangency(
   frontier: Scored[],
@@ -44,13 +92,16 @@ export function tangency(
   mu: number,
 ): { pick: Scored; utility: number } | undefined {
   if (frontier.length === 0) return undefined;
-  const nq = minMax(frontier.map((m) => m.q));
-  const nc = minMax(frontier.map((m) => m.c));
-  const nt = minMax(frontier.map((m) => m.t));
+
+  const positiveCosts = frontier.map((m) => m.c).filter((c) => c > 0);
+  const cMin = positiveCosts.length ? Math.min(...positiveCosts) : 0;
+  const positiveTs = frontier.map((m) => m.t).filter((t) => t > 0);
+  const tMin = positiveTs.length ? Math.min(...positiveTs) : 0;
+
   let best = frontier[0];
   let bestU = -Infinity;
   for (const m of frontier) {
-    const u = nq(m.q) - lambda * nc(m.c) - mu * nt(m.t);
+    const u = m.q - lambda * logRatio(m.c, cMin) - mu * logRatio(m.t, tMin);
     if (u > bestU) {
       bestU = u;
       best = m;
