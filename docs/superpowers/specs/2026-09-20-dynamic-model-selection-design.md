@@ -242,7 +242,9 @@ so the router recommends without switching until the operator runs
 | `extensions/router.ts` | modify | call site at line 125, `/router frontier` |
 | `eval/runner.ts` | modify | call site at line 81 |
 
-`src/selector.ts` stays pure. It performs no network call and reads no file.
+`src/selector.ts` stays pure. It performs no network call and reads no file. It
+reads the clock only through an injectable `now` option, so every test is
+deterministic.
 `selectModel` receives the catalog and the evidence as arguments. `src/catalog.ts`
 owns the fetch and the cache.
 
@@ -260,6 +262,7 @@ export function selectModel(
   catalog: CatalogModel[],
   evidence: EvidenceIndex,
   profile: RouterProfile,
+  kind: WorkKind,
 ): Recommendation;
 ```
 
