@@ -6,7 +6,9 @@ import { BENCHMARK_TASKS } from "./tasks.ts";
 import type { BenchmarkTask, RoutingStrategy, TaskRunResult, StrategySummary } from "./types.ts";
 import { verifyCommand } from "./verifiers.ts";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
-import { DEFAULT_POLICY, recommend, recommendByRole, resolveWorkKind, ROLE_MODELS, ROLE_THINKING } from "../src/selector.ts";
+import { selectModel, resolveWorkKind, ROLE_THINKING, PINNED_MODELS } from "../src/selector.ts";
+import { loadCatalog } from "../src/catalog.ts";
+import { loadEvidence } from "../src/evidence.ts";
 import type { TaskEnvelope } from "../src/task-envelope.ts";
 
 function getOpenRouterKey(): string | undefined {
@@ -78,26 +80,23 @@ async function resolveModelForStrategy(
   const workKind = resolveWorkKind(undefined, category, task.prompt);
 
   if (strategy === "router_role") {
-    const recommendation = recommendByRole(workKind, classification.answers as any, DEFAULT_POLICY, !classification.classifierUnavailable);
-    const thinking = workKind === "other"
-      ? (recommendation.tierIndex === 0 ? "low" : recommendation.tierIndex === 1 ? "medium" : "high")
-      : ROLE_THINKING[workKind];
-
     return {
-      model: recommendation.modelId,
-      thinking,
+      model: PINNED_MODELS.pareto_code[workKind],
+      thinking: ROLE_THINKING[workKind],
       systemPromptAppend: workKind === "writing" ? WRITING_STYLE_DIRECTIVE : undefined,
-      reason: `role:${workKind}`,
+      reason: `pinned:${workKind}`,
     };
   }
 
-  // strategy === "router_tiered"
-  const recommendation = recommend(classification.answers as any, DEFAULT_POLICY, !classification.classifierUnavailable);
-  const thinking = recommendation.tierIndex === 0 ? "low" : recommendation.tierIndex === 1 ? "medium" : "high";
+  // strategy === "router_frontier"
+  const { models } = await loadCatalog();
+  const evidence = loadEvidence();
+  const recommendation = selectModel(envelope, classification, models, evidence, "frontier", workKind);
   return {
     model: recommendation.modelId,
-    thinking,
-    reason: `tier:${recommendation.tierIndex} (${recommendation.reason})`,
+    thinking: ROLE_THINKING[workKind],
+    systemPromptAppend: workKind === "writing" ? WRITING_STYLE_DIRECTIVE : undefined,
+    reason: `${recommendation.reason}:${workKind}`,
   };
 }
 

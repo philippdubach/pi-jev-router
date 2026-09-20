@@ -10,7 +10,7 @@ export interface BenchmarkTask {
   customVerifier?: (workspaceDir: string) => Promise<{ ok: boolean; message: string }>;
 }
 
-export type RoutingStrategy = "fixed_frontier" | "router_role" | "router_tiered";
+export type RoutingStrategy = "fixed_frontier" | "router_role" | "router_frontier";
 
 export interface TaskRunResult {
   taskId: string;

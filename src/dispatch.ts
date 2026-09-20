@@ -15,7 +15,9 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { classify, WRITING_STYLE_DIRECTIVE } from "./classifier.ts";
-import { DEFAULT_POLICY, recommendByRole, resolveWorkKind, ROLE_THINKING } from "./selector.ts";
+import { selectModel, resolveWorkKind, ROLE_THINKING } from "./selector.ts";
+import { loadCatalog } from "./catalog.ts";
+import { loadEvidence } from "./evidence.ts";
 import { transition, logEvent, getTask } from "./board.ts";
 import type { TaskEnvelope, ClassificationResult } from "./task-envelope.ts";
 
@@ -94,13 +96,15 @@ export async function routeTask(objective: string, cwd: string, explicitRole?: s
     acceptanceCriteria: [],
     relevantContext: "",
     facts: { hasImages: false, estimatedContextTokens: Math.ceil(objective.length / 4), requiredTools: [], attempt: 0, priorFailureKinds: [] },
-    policyRef: `policy@v${DEFAULT_POLICY.version}`,
+    policyRef: "policy@v2",
   };
   const c = await classify(envelope);
   const category = String((c.answers as any).category?.value ?? "");
   const workKind = resolveWorkKind(explicitRole, category, objective);
-  const r = recommendByRole(workKind, c.answers as any, DEFAULT_POLICY, !c.classifierUnavailable);
-  const thinking = workKind === "other" ? (r.tierIndex === 0 ? "low" : r.tierIndex === 1 ? "medium" : "high") : ROLE_THINKING[workKind];
+  const { models } = await loadCatalog();
+  const evidence = loadEvidence();
+  const r = selectModel(envelope, c, models, evidence, "frontier", workKind);
+  const thinking = ROLE_THINKING[workKind];
   return { recommendation: r, thinking, classification: c, workKind };
 }
 

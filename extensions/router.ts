@@ -21,7 +21,9 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
-import { DEFAULT_POLICY, recommend, recommendByRole, resolveWorkKind, PROFILE_MODELS, ROLE_THINKING, type Recommendation, type WorkKind, type RouterProfile } from "../src/selector.ts";
+import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Recommendation, type WorkKind, type RouterProfile } from "../src/selector.ts";
+import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
+import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
@@ -32,7 +34,7 @@ type Mode = "shadow" | "auto" | "off";
 
 export default function (pi: ExtensionAPI) {
   let mode: Mode = "shadow";
-  let profile: RouterProfile = "pareto_code";
+  let profile: RouterProfile = "frontier";
   let pinnedModelId: string | undefined; // explicit /router pin
   let manualPin: string | undefined;     // user's own /model change since last routing
   let sessionBudgetUsd: number | undefined;
@@ -43,6 +45,19 @@ export default function (pi: ExtensionAPI) {
   let lastDecision:
     | { ts: string; recommendation: Recommendation; classification?: ClassificationResult; note?: string; switched?: boolean }
     | undefined;
+
+  // Catalog and evidence are loaded once, then reused. `selectModel` stays pure.
+  let catalogCache: CatalogModel[] = [];
+  let catalogSource: "network" | "cache" | "bootstrap" = "bootstrap";
+  let evidenceCache: EvidenceIndex = {};
+
+  async function ensureCatalog(): Promise<void> {
+    if (catalogCache.length > 0) return;
+    const loaded = await loadCatalog();
+    catalogCache = loaded.models;
+    catalogSource = loaded.source;
+    evidenceCache = loadEvidence();
+  }
 
   const showStatus = (ctx: any) => {
     const label = mode === "shadow" ? "SHADOW" : mode === "auto" ? "AUTO" : "OFF";
@@ -92,12 +107,16 @@ export default function (pi: ExtensionAPI) {
         attempt: 0,
         priorFailureKinds: [],
       },
-      policyRef: `policy@v${DEFAULT_POLICY.version}`,
+      policyRef: "policy@v2",
     };
 
     const classification = await classify(envelope, ctx.signal);
     const available = !classification.classifierUnavailable;
-    const recommendation = recommend(classification.answers as any, DEFAULT_POLICY, available);
+    const category = String((classification.answers as any)?.category?.value ?? "");
+    const workKind = resolveWorkKind(undefined, category, event.prompt);
+    await ensureCatalog();
+    // The pick is computed from the live feasible frontier for this task.
+    const recommendation = selectModel(envelope, classification, catalogCache, evidenceCache, profile, workKind);
     let note = !available ? `classifier unavailable (${classification.error}) — static fallback` : undefined;
 
     // Respect pins.
@@ -118,17 +137,8 @@ export default function (pi: ExtensionAPI) {
       if (overBudget) {
         ctx.ui.notify(`jev-router: session budget $${sessionBudgetUsd} reached — not switching`, "warning");
       } else {
-        const category = String((classification.answers as any)?.category?.value ?? "");
-        const workKind = resolveWorkKind(undefined, category, event.prompt);
-
-        // Map workKind to its role-specific model and thinking level.
-        const roleModel = workKind === "other" ? undefined : PROFILE_MODELS[profile][workKind];
-        const roleThinking = workKind === "other" ? undefined : ROLE_THINKING[workKind];
-        const target = roleModel ?? recommendation.modelId;
-        recommendation.modelId = target;
-        recommendation.reason = workKind === "other" ? recommendation.reason : "role_policy";
-
-        const switchedOk = await switchModel(ctx, target, recommendation.tierIndex, roleThinking);
+        const target = recommendation.modelId;
+        const switchedOk = await switchModel(ctx, target, ROLE_THINKING[workKind]);
         if (switchedOk === true) switched = true;
         if (switchedOk === undefined) note = `target model unavailable in Pi catalog; restart Pi after configuring ${target}`;
 
@@ -143,10 +153,21 @@ export default function (pi: ExtensionAPI) {
     if (classification.usage?.cost) sessionSpendUsd += classification.usage.cost;
 
     lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched };
-    record({ taskId, mode, recommendation, classification, note: note ?? (switched ? "switched" : "shadow") });
+    record({
+      taskId, mode, recommendation, classification,
+      note: note ?? (switched ? "switched" : "shadow"),
+      candidateCount: recommendation.candidateCount,
+      frontierSize: recommendation.frontier?.length,
+      q: recommendation.q,
+      cEst: recommendation.cEst,
+      tEst: recommendation.tEst,
+      lambda: recommendation.lambda,
+      mu: recommendation.mu,
+      reason: recommendation.reason,
+    });
     applyMode(ctx);
 
-    const tier = ["cheap", "mid", "strong"][recommendation.tierIndex] ?? `tier${recommendation.tierIndex}`;
+    const tier = workKind;
     const verb = switched ? "routed to" : "would route to";
     ctx.ui.notify(
       `jev-router: ${verb} ${recommendation.modelId} (${tier}, ${recommendation.reason})` +
@@ -159,7 +180,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  async function switchModel(ctx: any, openrouterModelId: string, tierIndex = 1, roleThinking?: string): Promise<boolean | undefined> {
+  async function switchModel(ctx: any, openrouterModelId: string, roleThinking?: string): Promise<boolean | undefined> {
     const current = ctx.model;
     const candidate = (ctx.modelRegistry?.getAvailable?.() ?? []).find(
       (m: any) => m.provider === "openrouter" && m.id === openrouterModelId,
@@ -179,8 +200,8 @@ export default function (pi: ExtensionAPI) {
         return false;
       }
     }
-    // Thinking level: role-specific when routed by role, else by tier.
-    const level = roleThinking ?? (tierIndex === 0 ? "low" : tierIndex === 1 ? "medium" : "high");
+    // Thinking level: role-specific, else a safe default.
+    const level = roleThinking ?? "medium";
     suppressModelSelect = true;
     try {
       const ok = await pi.setModel(candidate);
@@ -242,10 +263,11 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("router", {
-    description: "Jev router: status | shadow | auto | off | pin | budget | test",
+    description: "Jev router: status | shadow | auto | off | profile | pin | budget | test | frontier",
     handler: async (args, ctx) => {
       const parts = (args ?? "").trim().split(/\s+/);
       const sub = parts[0] || "status";
+      const id = parts[1];
       switch (sub) {
         case "shadow":
           mode = "shadow";
@@ -266,12 +288,12 @@ export default function (pi: ExtensionAPI) {
           break;
         case "profile": {
           const p = parts[1] as RouterProfile;
-          if (p === "pareto_code" || p === "empirical_cost") {
+          if (p === "pareto_code" || p === "empirical_cost" || p === "frontier") {
             profile = p;
             applyMode(ctx);
             ctx.ui.notify(`jev-router: profile set to ${p}`, "info");
           } else {
-            ctx.ui.notify(`current profile: ${profile} — usage: /router profile pareto_code | empirical_cost`, "info");
+            ctx.ui.notify(`current profile: ${profile} — usage: /router profile frontier | pareto_code | empirical_cost`, "info");
           }
           break;
         }
@@ -303,10 +325,13 @@ export default function (pi: ExtensionAPI) {
             acceptanceCriteria: ["test passes", "no unrelated changes"],
             relevantContext: "",
             facts: { hasImages: false, estimatedContextTokens: 500, requiredTools: ["read", "edit", "bash"], attempt: 0, priorFailureKinds: [] },
-            policyRef: `policy@v${DEFAULT_POLICY.version}`,
+            policyRef: "policy@v2",
           };
           const c = await classify(envelope, ctx.signal);
-          const r = recommend(c.answers as any, DEFAULT_POLICY, !c.classifierUnavailable);
+          const cat = String((c.answers as any)?.category?.value ?? "");
+          const wk = resolveWorkKind(undefined, cat, envelope.objective);
+          await ensureCatalog();
+          const r = selectModel(envelope, c, catalogCache, evidenceCache, profile, wk);
           ctx.ui.notify(
             `test: ${r.modelId} (${r.reason})` +
               (c.ok ? ` · category=${String((c.answers.category as any)?.value)} complexity=${(c.answers.complexity as any)?.value} risk=${(c.answers.risk as any)?.value}` : ` · ${c.error}`),
@@ -317,6 +342,26 @@ export default function (pi: ExtensionAPI) {
           applyMode(ctx);
           break;
         }
+        case "frontier": {
+          const r = lastDecision?.recommendation;
+          if (!r?.frontier?.length) {
+            ctx.ui.notify("jev-router: no frontier recorded yet — run a task in auto or shadow mode", "info");
+            break;
+          }
+          const rows = r.frontier
+            .slice()
+            .sort((a, b) => a.c - b.c)
+            .map((m) => `${m.id === r.modelId ? "*" : " "} ${m.id}  q=${m.q.toFixed(3)}  $${m.c.toFixed(4)}  ${Math.round(m.t)}ms`);
+          ctx.ui.notify(
+            [
+              `jev-router frontier (${r.candidateCount} candidates -> ${r.frontier.length} on frontier)`,
+              `reason=${r.reason} lambda=${r.lambda} mu=${r.mu}`,
+              ...rows,
+            ].join("\n"),
+            "info",
+          );
+          break;
+        }
         default: {
           const lines = [
             `mode: ${mode} (profile: ${profile})`,
@@ -324,7 +369,8 @@ export default function (pi: ExtensionAPI) {
             `budget: ${sessionBudgetUsd !== undefined ? "$" + sessionBudgetUsd : "unset"} · spent $${sessionSpendUsd.toFixed(4)}`,
             lastDecision ? `last: ${lastDecision.recommendation.modelId} (${lastDecision.recommendation.reason})` : "no decision yet",
             `ledger: ${LEDGER_FILE}`,
-            `allowlist: ${DEFAULT_POLICY.allowlist.join(", ")}`,
+            `catalog: ${catalogCache.length} models (${catalogSource})`,
+            `weights: ${JSON.stringify(PROFILE_WEIGHTS)}`,
           ];
           ctx.ui.notify(lines.join("\n"), "info");
         }

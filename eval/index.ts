@@ -7,7 +7,7 @@ import type { RoutingStrategy, TaskRunResult, StrategySummary } from "./types.ts
 async function main() {
   const args = process.argv.slice(2);
   const requestedStrategies: RoutingStrategy[] = args.includes("--all")
-    ? ["fixed_frontier", "router_role", "router_tiered"]
+    ? ["fixed_frontier", "router_role", "router_frontier"]
     : args.includes("--baseline-only")
     ? ["fixed_frontier"]
     : ["fixed_frontier", "router_role"];

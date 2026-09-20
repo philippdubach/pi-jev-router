@@ -16,6 +16,15 @@ export interface DecisionRecord {
   recommendation: unknown;
   classification?: unknown;
   note?: string;
+  // Frontier observability, copied from the Recommendation for easy filtering.
+  candidateCount?: number;
+  frontierSize?: number;
+  q?: number;
+  cEst?: number;
+  tEst?: number;
+  lambda?: number;
+  mu?: number;
+  reason?: string;
 }
 
 export function record(entry: Omit<DecisionRecord, "ts">): void {
