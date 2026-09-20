@@ -1,18 +1,43 @@
 {
   "name": "pi-jev-router",
   "version": "0.1.0",
-  "description": "Jev-classified, cost-aware model routing for the pi coding agent (shadow mode)",
-  "keywords": ["pi-package"],
+  "description": "A minimal Pareto-optimal OpenRouter model router for pi, based on Jev",
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "openrouter",
+    "typesafe",
+    "jev",
+    "model-router",
+    "chief-of-staff",
+    "pareto-frontier"
+  ],
+  "author": "Philipp Dubach",
+  "license": "MIT",
+  "homepage": "https://github.com/philippdubach/pi-jev-router#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/philippdubach/pi-jev-router.git"
+  },
+  "bugs": {
+    "url": "https://github.com/philippdubach/pi-jev-router/issues"
+  },
   "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types tests/selector.test.ts && node --experimental-strip-types tests/role-routing.test.ts && node --experimental-strip-types tests/worktree.test.ts",
+    "bench": "node --experimental-strip-types eval/index.ts"
+  },
   "pi": {
-    "extensions": ["./extensions/router.ts"]
+    "extensions": [
+      "./extensions/router.ts"
+    ]
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
     "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
     "typebox": "*"
   }
 }
