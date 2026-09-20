@@ -1,7 +1,6 @@
 # pi-jev-router: a minimal Pareto-optimal OpenRouter model router for pi, based on Jev
 
-Jev-classified model routing for pi. One Jev call classifies each task.
-Local code picks the model. Workers do the work. Verifiers check it.
+Jev-classified model routing for pi. 
 
 ## Model rules
 
