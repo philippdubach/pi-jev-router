@@ -14,8 +14,8 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import { classify } from "./classifier.ts";
-import { DEFAULT_POLICY, recommend } from "./selector.ts";
+import { classify, WRITING_STYLE_DIRECTIVE } from "./classifier.ts";
+import { DEFAULT_POLICY, recommendByRole, resolveWorkKind, ROLE_THINKING } from "./selector.ts";
 import { transition, logEvent, getTask } from "./board.ts";
 import type { TaskEnvelope, ClassificationResult } from "./task-envelope.ts";
 
@@ -23,8 +23,8 @@ export const TASK_DIR_ROOT = join(homedir(), ".pi", "agent", "jev-router", "task
 
 export interface DispatchOptions {
   cwd: string;
-  acceptCriteria?: string[];
-  verifierCommand?: string;
+  acceptanceCriteria?: string[];
+  role?: string; // "planning" | "code" | "writing" - else classified
   signal?: AbortSignal;
   onLine?: (evt: any) => void;
 }
@@ -76,10 +76,10 @@ export function writeBrief(taskId: string, objective: string, acceptance: string
 }
 
 /** Classify the task and pick model+thinking. Falls back to static policy. */
-export async function routeTask(objective: string, cwd: string) {
+export async function routeTask(objective: string, cwd: string, explicitRole?: string) {
   const envelope: TaskEnvelope = {
     taskId: `r-${randomUUID().slice(0, 8)}`,
-    role: "implementer",
+    role: (explicitRole as TaskEnvelope["role"]) ?? "implementer",
     objective,
     acceptanceCriteria: [],
     relevantContext: "",
@@ -87,16 +87,18 @@ export async function routeTask(objective: string, cwd: string) {
     policyRef: `policy@v${DEFAULT_POLICY.version}`,
   };
   const c = await classify(envelope);
-  const r = recommend(c.answers as any, DEFAULT_POLICY, !c.classifierUnavailable);
-  const thinking = r.tierIndex === 0 ? "low" : r.tierIndex === 1 ? "medium" : "high";
-  return { recommendation: r, thinking, classification: c };
+  const category = String((c.answers as any).category?.value ?? "");
+  const workKind = resolveWorkKind(explicitRole, category, objective);
+  const r = recommendByRole(workKind, c.answers as any, DEFAULT_POLICY, !c.classifierUnavailable);
+  const thinking = workKind === "other" ? (r.tierIndex === 0 ? "low" : r.tierIndex === 1 ? "medium" : "high") : ROLE_THINKING[workKind];
+  return { recommendation: r, thinking, classification: c, workKind };
 }
 
 export async function dispatch(taskId: string, opts: DispatchOptions): Promise<DispatchResult> {
   const task = getTask(taskId);
   if (!task) return { ok: false, taskId, model: "", thinking: "", handshake: false, finalOutput: "", usage: { input: 0, output: 0, cost: 0, turns: 0 }, error: "unknown task" };
 
-  const { recommendation, thinking, classification } = await routeTask(task.objective, opts.cwd);
+  const { recommendation, thinking, classification, workKind } = await routeTask(task.objective, opts.cwd, opts.role);
   const briefPath = writeBrief(taskId, task.objective, opts.acceptanceCriteria ?? [], opts.cwd);
   const nonce = randomUUID().slice(0, 8);
   const summaryPath = join(TASK_DIR_ROOT, taskId, "summary.json");
@@ -106,8 +108,10 @@ export async function dispatch(taskId: string, opts: DispatchOptions): Promise<D
   }
   logEvent(taskId, "routed", { model: recommendation.modelId, thinking, classifier: classification.resolvedModel });
 
-  const prompt = `Read ${briefPath} and do exactly what it says. When finished, write ${summaryPath} containing {"taskId":"${taskId}","nonce":"${nonce}","status":"done|failed|blocked","summary":"...","verification":"..."}`;
+  const workerPrompt = `Read ${briefPath} and do exactly what it says. When finished, write ${summaryPath} containing {"taskId":"${taskId}","nonce":"${nonce}","status":"done|failed|blocked","summary":"...","verification":"..."}`;
 
+  // Writing tasks get the humanizer + STE style directive.
+  const systemPrompt = workKind === "writing" ? WORKER_SYSTEM_PROMPT + WRITING_STYLE_DIRECTIVE : WORKER_SYSTEM_PROMPT;
   const args = [
     "--mode", "json", "-p",
     "--session-dir", join(TASK_DIR_ROOT, taskId, "session"),
@@ -115,8 +119,8 @@ export async function dispatch(taskId: string, opts: DispatchOptions): Promise<D
     "--thinking", thinking,
     "--no-extensions",
     "--no-context-files",
-    "--append-system-prompt", WORKER_SYSTEM_PROMPT,
-    prompt,
+    "--append-system-prompt", systemPrompt,
+    workerPrompt,
   ];
 
   const result = await runPi(args, opts);

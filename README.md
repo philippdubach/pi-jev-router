@@ -38,15 +38,25 @@ credential Pi stores in `~/.pi/agent/auth.json`.
 Each top-level task triggers one batched Jev request (category / complexity / risk / brief /
 decompose). The decision is appended to `~/.pi/agent/jev-router/decisions.jsonl`.
 
-### Auto-mode behavior (M2)
+## Role-based routing
 
-- One classification per task; steering/follow-ups never re-route.
-- Model + thinking level switch together: cheap → low, mid → medium, strong → high.
-- Manual `/model` changes are respected as pins until you re-run `/router auto|shadow`.
-- `/router pin` overrides classification but not safety checks.
-- Context-downgrade guard: refuses a switch when the current context wouldn't fit the target window.
-- Session budget gate: no switches once `/router budget` is exhausted.
-- Unavailable models are skipped with a recorded note; spend is visible in `/router status`.
+The router automatically classifies every top-level task and applies your preferred model classes:
+
+| Role | Target | Thinking | Notes |
+|---|---|---|---|
+| **Planning** | `anthropic/claude-fable-5.1` | high | Frontier intelligence with superior planning capabilities |
+| **Code / review** | `openrouter/pareto-code` | medium | OpenRouter expert Pareto coding router |
+| **Writing / prose** | `openai/gpt-5.4-mini` | low | Fast OpenAI model + **automatic /humanizer & Simplified Technical English (STE) style directive** |
+| **Other** | tier-based (`DEFAULT_POLICY`) | by tier | Complexity/risk-driven tier assignment |
+
+### Automatic Chief (no separate command needed)
+
+You never need to run `/chief start` manually:
+1. Every task is classified and the **main session switches automatically** to the right model.
+2. The `dispatch_task` tool is registered inside every session: a planning model can delegate implementation subtasks to isolated workers itself.
+3. Writing tasks automatically receive the humanizer and STE rules prepended to their system prompt.
+
+The `/chief` command remains available for inspecting the durable SQLite task board (`/chief board`), checking events (`/chief events <id>`), or running independent verification checks (`/chief verify <id> <cmd>`).
 
 ## Tests
 

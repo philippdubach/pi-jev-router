@@ -40,7 +40,54 @@ export type RecommendationReason =
   | "tier_by_complexity"
   | "risk_floor"
   | "fallback"
-  | "classifier_unavailable";
+  | "classifier_unavailable"
+  | "role_policy";
+
+/** Work kinds drive role-based model selection. */
+export type WorkKind = "planning" | "code" | "writing" | "other";
+
+/**
+ * Role-based routing (user directive):
+ * - planning/coordinator  -> frontier intelligence (superior planning)
+ * - code implementation / PR review -> expert Pareto coding agent
+ * - prose / writing       -> frontier FAST OpenAI models (user prefers style)
+ */
+export const ROLE_MODELS: Record<WorkKind, string> = {
+  planning: "anthropic/claude-fable-5.1",
+  code: "openrouter/pareto-code", // OpenRouter Pareto router, high tier default
+  writing: "openai/gpt-5.4-mini",
+  other: "",
+};
+
+export const ROLE_THINKING: Record<WorkKind, string> = {
+  planning: "high",
+  code: "medium",
+  writing: "low",
+  other: "medium",
+};
+
+/** Map prompt text + Jev category -> work kind. Explicit role overrides this. */
+export function resolveWorkKind(explicit?: string, category?: string, promptText?: string): WorkKind {
+  if (explicit === "planning" || explicit === "code" || explicit === "writing") return explicit;
+  const lower = (promptText ?? "").toLowerCase();
+  // Clear text-level intent takes precedence where category is ambiguous:
+  if (/\b(architecture|architect|design (a|the|some|our)?|system design|rfc|spec|tradeoffs?|rollout plan|plan the)\b/.test(lower)) {
+    return "planning";
+  }
+  if (/\b(write\b.*\b(blog|article|post|essay|copy|paragraph|prose|readme|summary|intro)|draft\b|humanize|polish the text|rewrite|simplified technical english|ste\b)\b/.test(lower)) {
+    return "writing";
+  }
+  switch (category) {
+    case "architecture": return "planning";
+    case "implementation":
+    case "debugging":
+    case "mechanical_edit":
+    case "review": return "code";
+    case "lookup":
+    case "explanation": return "writing";
+    default: return "other";
+  }
+}
 
 export interface Recommendation {
   modelId: string;
@@ -83,4 +130,19 @@ export function recommend(
     risk >= 2 && idx === policy.riskFloor.minIndex && idx > tier ? "risk_floor" : "tier_by_complexity";
 
   return { modelId: policy.allowlist[idx], tierIndex: idx, reason, complexity, risk, confidence };
+}
+
+/** Role-aware routing: planning/code/writing get their dedicated model classes. */
+export function recommendByRole(
+  workKind: WorkKind,
+  answers: Record<string, { type: string; value: string | number; confidence?: number }>,
+  policy: Policy,
+  classifierAvailable: boolean,
+): Recommendation {
+  if (workKind === "other" || !classifierAvailable) {
+    return recommend(answers, policy, classifierAvailable);
+  }
+  const modelId = ROLE_MODELS[workKind];
+  const tierIndex = workKind === "planning" ? 2 : workKind === "code" ? 2 : 0;
+  return { modelId, tierIndex, reason: "role_policy" };
 }

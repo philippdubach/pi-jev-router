@@ -20,9 +20,12 @@
  *   /router test            — classify a sample task end-to-end
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { classify } from "../src/classifier.ts";
-import { DEFAULT_POLICY, recommend, type Recommendation } from "../src/selector.ts";
+import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
+import { DEFAULT_POLICY, recommend, recommendByRole, resolveWorkKind, ROLE_MODELS, ROLE_THINKING, type Recommendation, type WorkKind } from "../src/selector.ts";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
+import { createTask, getTask, transition } from "../src/board.ts";
+import { dispatch } from "../src/dispatch.ts";
+import { Type } from "typebox";
 import type { TaskEnvelope, ClassificationResult } from "../src/task-envelope.ts";
 
 type Mode = "shadow" | "auto" | "off";
@@ -105,18 +108,31 @@ export default function (pi: ExtensionAPI) {
     }
 
     let switched = false;
+    let injectedSystemPrompt: string | undefined;
+
     if (mode === "auto" && available) {
       // Budget gate.
       const overBudget = sessionBudgetUsd !== undefined && sessionSpendUsd >= sessionBudgetUsd;
       if (overBudget) {
         ctx.ui.notify(`jev-router: session budget $${sessionBudgetUsd} reached — not switching`, "warning");
       } else {
-        const switchedOk = await switchModel(ctx, recommendation.modelId, recommendation.tierIndex);
-        if (switchedOk === true) {
-          switched = true;
-          sessionSpendUsd += 0; // actual cost reconciled from usage; classification cost tracked below
+        const category = String((classification.answers as any)?.category?.value ?? "");
+        const workKind = resolveWorkKind(undefined, category, event.prompt);
+
+        // Map workKind to its role-specific model and thinking level.
+        const roleModel = workKind === "other" ? undefined : ROLE_MODELS[workKind];
+        const roleThinking = workKind === "other" ? undefined : ROLE_THINKING[workKind];
+        const target = roleModel ?? recommendation.modelId;
+        recommendation.modelId = target;
+        recommendation.reason = workKind === "other" ? recommendation.reason : "role_policy";
+
+        const switchedOk = await switchModel(ctx, target, recommendation.tierIndex, roleThinking);
+        if (switchedOk === true) switched = true;
+
+        // Writing tasks get the humanizer + STE style directive injected into the turn.
+        if (workKind === "writing") {
+          injectedSystemPrompt = (event.systemPrompt ?? "") + WRITING_STYLE_DIRECTIVE;
         }
-        // switchedOk === false (not found/unaffordable context): stay on current model.
       }
     }
 
@@ -134,11 +150,14 @@ export default function (pi: ExtensionAPI) {
         (note ? ` — ${note}` : ""),
       "info",
     );
+
+    if (injectedSystemPrompt) {
+      return { systemPrompt: injectedSystemPrompt };
+    }
   });
 
-  async function switchModel(ctx: any, openrouterModelId: string, tierIndex: number): Promise<boolean | undefined> {
+  async function switchModel(ctx: any, openrouterModelId: string, tierIndex = 1, roleThinking?: string): Promise<boolean | undefined> {
     const current = ctx.model;
-    const targetId = openrouterModelId; // e.g. anthropic/claude-sonnet-5
     const candidate = (ctx.modelRegistry?.getAvailable?.() ?? []).find(
       (m: any) => m.provider === "openrouter" && m.id === openrouterModelId,
     );
@@ -156,8 +175,8 @@ export default function (pi: ExtensionAPI) {
         return false;
       }
     }
-    // Thinking level per tier (clamped by pi to model capability).
-    const level = tierIndex === 0 ? "low" : tierIndex === 1 ? "medium" : "high";
+    // Thinking level: role-specific when routed by role, else by tier.
+    const level = roleThinking ?? (tierIndex === 0 ? "low" : tierIndex === 1 ? "medium" : "high");
     suppressModelSelect = true;
     try {
       const ok = await pi.setModel(candidate);
@@ -167,6 +186,51 @@ export default function (pi: ExtensionAPI) {
       suppressModelSelect = false;
     }
   }
+
+  // dispatch_task is available inside every session so the model can
+  // delegate implementation subtasks to isolated routed workers.
+  pi.registerTool({
+    name: "dispatch_task",
+    label: "Dispatch Task",
+    description:
+      "Delegate an implementation or research subtask to an isolated worker session. The worker is routed by role: code -> openrouter/pareto-code, writing -> fast OpenAI, planning -> frontier. Use this to keep your own context clean.",
+    promptSnippet: "Delegate an implementation subtask to an isolated routed worker session",
+    promptGuidelines: [
+      "Use dispatch_task when you have designed a subtask with clear acceptance criteria and want an isolated worker to implement it.",
+    ],
+    parameters: Type.Object({
+      objective: Type.String({ description: "Concrete objective for the worker" }),
+      acceptanceCriteria: Type.Optional(Type.Array(Type.String(), { description: "Acceptance checks" })),
+      role: Type.Optional(Type.String({ description: "Explicit role: planning | code | writing" })),
+    }),
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      const task = createTask(params.objective);
+      const r = await dispatch(task.id, {
+        cwd: ctx.cwd,
+        acceptanceCriteria: params.acceptanceCriteria ?? [],
+        role: params.role,
+        signal,
+      });
+      sessionSpendUsd += r.usage.cost;
+      return {
+        content: [{
+          type: "text",
+          text:
+            `${task.id}: worker done=${r.ok} model=${r.model} handshake=${r.handshake ? "ok" : "MISSING"}\n` +
+            `usage: ${r.usage.turns} turns, in ${r.usage.input}, out ${r.usage.output}, $${r.usage.cost.toFixed(4)}\n` +
+            `output: ${r.finalOutput.slice(0, 1500)}` +
+            (r.error ? `\nerror: ${r.error}` : "") +
+            `\nStatus: ${getTask(task.id)?.status}. Verify independently before accepting.`,
+        }],
+        details: { taskId: task.id, ...r },
+        usage: {
+          input: r.usage.input, output: r.usage.output, cacheRead: 0, cacheWrite: 0,
+          totalTokens: r.usage.input + r.usage.output,
+          cost: { input: r.usage.cost, output: 0, cacheRead: 0, cacheWrite: 0, total: r.usage.cost },
+        } as any,
+      };
+    },
+  });
 
   pi.registerCommand("router", {
     description: "Jev router: status | shadow | auto | off | pin | budget | test",

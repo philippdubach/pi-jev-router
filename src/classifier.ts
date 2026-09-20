@@ -21,6 +21,13 @@ import {
 
 const OPENROUTER_BASE = "https://openrouter.ai/api"; // SDK appends /v1/systemone
 
+/** Writing-style directive appended to writer-role workers (user preference). */
+export const WRITING_STYLE_DIRECTIVE = `
+Writing style requirements (mandatory):
+- First apply the humanizer rules: no "not X but Y" contrasts, no one-line closers, no staged openers, no forced triads, no em-dash overuse, no bold labels, no filler, no sales language, no stock AI words.
+- Apply Simplified Technical English (STE): short declarative sentences, one idea per sentence, active voice, no nominalizations, no ambiguity.
+- Keep the meaning exactly; only the style changes.`;
+
 function keyFromPiAuth(): string | undefined {
   try {
     const auth = JSON.parse(readFileSync(join(homedir(), ".pi", "agent", "auth.json"), "utf8"));
