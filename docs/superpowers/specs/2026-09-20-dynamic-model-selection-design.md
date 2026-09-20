@@ -94,25 +94,26 @@ w(n) = n / (n + 5)
 q(m,k) = w(n) * q_obs(m,k) + (1 - w(n)) * q_prior(m,k)
 
 q_obs(m,k)   = (passes + 1) / (runs + 2)
-q_prior(m,k) = normalised artificial_analysis index, by work kind
+q_prior(m,k) = normalised index, by work kind
 ```
 
 The index depends on the work kind:
 
 | Work kind | Index |
 |---|---|
-| planning | `intelligence_index` |
-| code | `coding_index` |
-| writing | `intelligence_index` |
-| other | `agentic_index` |
+| planning | `artificial_analysis.intelligence_index` |
+| code | `artificial_analysis.coding_index` |
+| writing | EQ-Bench Creative Writing v3 Elo (`src/writing-prior.ts`) |
+| other | `artificial_analysis.agentic_index` |
 
-Each index is min-max normalised across the models that carry it. The three
-indices use different scales, so each is normalised within its own family.
+Each index is min-max normalised across the models that carry it. The indices
+use different scales, so each is normalised within its own family. A general
+intelligence index says nothing about prose, so writing uses a writing
+benchmark.
 
-A model with no `artificial_analysis` entry receives the 60th percentile of the
-normalised distribution for that index. This prior is deliberately optimistic.
-An unmeasured model must be able to win low-risk work, because that is how it
-earns evidence.
+A model with no entry for its index receives the 60th percentile of the
+normalised distribution. This prior is deliberately optimistic. An unmeasured
+model must be able to win low-risk work, because that is how it earns evidence.
 
 ### Cost
 
@@ -187,23 +188,31 @@ The frontier `F` is the non-dominated subset of the feasible set. The
 comparison is O(n squared). With n near 200 this is about 40000 comparisons and
 costs no measurable time.
 
-## Tangency selection
+## Selection: knee point, with a weighted fallback
 
-Each objective is min-max normalised across `F`, not across the catalog. The
-frontier is the relevant comparison set.
+The frontier `F` is the relevant comparison set.
+
+The primary rule is the knee point. The knee is the frontier member farthest
+from the chord that joins the cheapest and the dearest member, in
+(quality, log cost) space. It needs no weights. The pick therefore follows the
+catalog and the recorded evidence on every task.
+
+`knee(F)` returns `undefined` when a knee is not defined: fewer than three
+members, no cost or quality spread, or a flat frontier. The selector then falls
+back to a weighted value function over the same frontier:
 
 ```
-u(m) = qhat(m) - lambda * chat(m) - mu * that(m)
+u(m) = q(m) - lambda * log2(c(m)/c_min) - mu * log2(t(m)/t_min)
 pick = argmax over F of u(m)
 ```
 
-The argmax of a linear scalarisation always lies on the frontier. Computing `F`
-first does not change the winner for a given lambda. It shrinks the sort set,
-supplies a loggable frontier, and leaves room for a different selection rule
-later.
+Cost and latency are ratios, so lambda is quality surrendered per doubling of
+cost. The earlier min-max normalisation was dropped: it made lambda depend on
+the frontier's spread, so the same weight meant different things on different
+tasks.
 
-Linear weights reach only the convex hull of `F`. A model inside a concave
-region of the frontier cannot win for any lambda. This is accepted.
+Linear weights reach only the convex hull of `F`. The knee reaches concave
+regions. The fallback covers the small frontiers where a knee is meaningless.
 
 ## Profiles
 

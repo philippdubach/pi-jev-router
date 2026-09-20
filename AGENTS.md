@@ -10,7 +10,10 @@ features outside this scope. Do not add a server, a dashboard, or an MCP layer.
 ## Architecture
 
 - `src/classifier.ts` calls Jev through OpenRouter. One batched request per task. Five questions: category, complexity, risk, brief, decompose.
-- `src/selector.ts` maps classification results to models. Pure functions. No network calls. No model calls.
+- `src/catalog.ts` fetches, caches and normalises the OpenRouter catalog. It owns every network call for model data.
+- `src/evidence.ts` aggregates `eval/results` into per-model, per-work-kind statistics.
+- `src/frontier.ts` computes Pareto dominance, the knee point, and the weighted fallback. Pure functions.
+- `src/selector.ts` scores models and selects one. Pure functions. No network calls. No file reads. The caller supplies the catalog and the evidence.
 - `src/board.ts` owns task state in SQLite. Transitions are compare-and-set. Only the acceptance path marks a task done.
 - `src/dispatch.ts` spawns isolated `pi --mode json -p` workers. Each worker gets a brief file, a nonce, and a summary handshake.
 - `extensions/router.ts` and `extensions/chief.ts` are the only pi entry points.
@@ -21,7 +24,7 @@ features outside this scope. Do not add a server, a dashboard, or an MCP layer.
 2. Never route mid-tool-call. Route only at task, subtask, and retry boundaries.
 3. Never trust a worker's self-report. Run the verifier. Read the exit code.
 4. Never replay a completed side-effecting tool call after a timeout.
-5. Keep the model allowlist in `src/selector.ts` explicit. Never route to an unlisted model.
+5. Route only to models the catalog lists as feasible for the task. A model with fewer than three recorded runs for the work kind cannot take a task with risk 2 or higher. The bootstrap list in `src/catalog.ts` applies only when the catalog is unavailable.
 6. Budget gates apply to automatic routing. A pin cannot bypass a budget or a security check.
 7. Workers get `--no-extensions` and `--no-context-files`. A worker must not spawn workers.
 8. Do not commit, push, or deploy from a worker.
