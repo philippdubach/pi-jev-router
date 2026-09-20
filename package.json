@@ -5,7 +5,7 @@
   "keywords": ["pi-package"],
   "type": "module",
   "pi": {
-    "extensions": ["./extensions"]
+    "extensions": ["./extensions/router.ts"]
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0"

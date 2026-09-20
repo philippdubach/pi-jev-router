@@ -19,12 +19,20 @@ import { DEFAULT_POLICY, recommendByRole, resolveWorkKind, ROLE_THINKING } from 
 import { transition, logEvent, getTask } from "./board.ts";
 import type { TaskEnvelope, ClassificationResult } from "./task-envelope.ts";
 
+import { createWorktree, cleanupWorktree, mergeWorktree, type WorktreeSession } from "./worktree.ts";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
+
 export const TASK_DIR_ROOT = join(homedir(), ".pi", "agent", "jev-router", "tasks");
 
 export interface DispatchOptions {
   cwd: string;
   acceptanceCriteria?: string[];
-  role?: string; // "planning" | "code" | "writing" - else classified
+  verifierCommand?: string;
+  isolateWorktree?: boolean;
+  role?: string; // "planning" | "code" | "writing" — else classified
   signal?: AbortSignal;
   onLine?: (evt: any) => void;
 }
@@ -36,6 +44,8 @@ export interface DispatchResult {
   thinking: string;
   handshake: boolean;
   finalOutput: string;
+  verificationOutput?: string;
+  worktreeIsolated?: boolean;
   usage: { input: number; output: number; cost: number; turns: number };
   error?: string;
 }
@@ -98,15 +108,26 @@ export async function dispatch(taskId: string, opts: DispatchOptions): Promise<D
   const task = getTask(taskId);
   if (!task) return { ok: false, taskId, model: "", thinking: "", handshake: false, finalOutput: "", usage: { input: 0, output: 0, cost: 0, turns: 0 }, error: "unknown task" };
 
-  const { recommendation, thinking, classification, workKind } = await routeTask(task.objective, opts.cwd, opts.role);
-  const briefPath = writeBrief(taskId, task.objective, opts.acceptanceCriteria ?? [], opts.cwd);
+  // Set up isolated worktree if in a git repo and isolation is not disabled
+  let targetCwd = opts.cwd;
+  let worktreeSession: WorktreeSession | null = null;
+  if (opts.isolateWorktree !== false) {
+    worktreeSession = await createWorktree(opts.cwd, taskId);
+    if (worktreeSession) {
+      targetCwd = worktreeSession.worktreePath;
+    }
+  }
+
+  const { recommendation, thinking, classification, workKind } = await routeTask(task.objective, targetCwd, opts.role);
+  const briefPath = writeBrief(taskId, task.objective, opts.acceptanceCriteria ?? [], targetCwd);
   const nonce = randomUUID().slice(0, 8);
   const summaryPath = join(TASK_DIR_ROOT, taskId, "summary.json");
 
   if (!transition(taskId, null, "running", { model: recommendation.modelId, thinking, briefPath, leaseNonce: nonce, attempt: task.attempt + 1 })) {
+    if (worktreeSession) await cleanupWorktree(worktreeSession);
     return { ok: false, taskId, model: recommendation.modelId, thinking, handshake: false, finalOutput: "", usage: { input: 0, output: 0, cost: 0, turns: 0 }, error: "transition to running failed" };
   }
-  logEvent(taskId, "routed", { model: recommendation.modelId, thinking, classifier: classification.resolvedModel });
+  logEvent(taskId, "routed", { model: recommendation.modelId, thinking, classifier: classification.resolvedModel, worktree: !!worktreeSession });
 
   const workerPrompt = `Read ${briefPath} and do exactly what it says. When finished, write ${summaryPath} containing {"taskId":"${taskId}","nonce":"${nonce}","status":"done|failed|blocked","summary":"...","verification":"..."}`;
 
@@ -123,19 +144,61 @@ export async function dispatch(taskId: string, opts: DispatchOptions): Promise<D
     workerPrompt,
   ];
 
-  const result = await runPi(args, opts);
+  const result = await runPi(args, { ...opts, cwd: targetCwd });
   const handshake = checkHandshake(taskId, nonce, summaryPath);
 
-  // Verification is NOT assumed from the worker's claim.
-  if (result.ok && handshake) transition(taskId, "running", "verifying", { resultSummary: result.finalOutput.slice(0, 2000) });
-  else transition(taskId, "running", result.ok ? "blocked" : "failed", { resultSummary: result.finalOutput.slice(0, 2000) });
+  let verifiedPass = false;
+  let verificationOutput: string | undefined;
+
+  // Automated Verification (if verifierCommand is specified)
+  if (result.ok && handshake && opts.verifierCommand) {
+    try {
+      const { stdout, stderr } = await execAsync(opts.verifierCommand, { cwd: targetCwd, timeout: 60000 });
+      verifiedPass = true;
+      verificationOutput = `PASS (${opts.verifierCommand}): ${(stdout || stderr).slice(0, 500)}`;
+      
+      // Verification passed -> merge isolated worktree into main repo
+      if (worktreeSession) {
+        const mergeRes = await mergeWorktree(worktreeSession);
+        if (!mergeRes.ok) {
+          verificationOutput += ` (Merge warning: ${mergeRes.error})`;
+        }
+        await cleanupWorktree(worktreeSession);
+      }
+      transition(taskId, "running", "done", { resultSummary: result.finalOutput.slice(0, 2000), verification: verificationOutput });
+    } catch (err: any) {
+      verifiedPass = false;
+      const code = err?.code ?? err?.signal ?? "?";
+      verificationOutput = `FAIL (${opts.verifierCommand}) exit=${code}: ${String(err.stdout || err.stderr || err.message).slice(0, 500)}`;
+      
+      // Verification failed -> clean up worktree without dirtying main repo!
+      if (worktreeSession) {
+        await cleanupWorktree(worktreeSession);
+      }
+      transition(taskId, "running", "failed", { resultSummary: result.finalOutput.slice(0, 2000), verification: verificationOutput });
+    }
+  } else if (result.ok && handshake) {
+    // No verifierCommand -> park in verifying for manual /chief verify
+    transition(taskId, "running", "verifying", { resultSummary: result.finalOutput.slice(0, 2000) });
+  } else {
+    // Worker failed or handshake missing -> cleanup worktree
+    if (worktreeSession) await cleanupWorktree(worktreeSession);
+    transition(taskId, "running", result.ok ? "blocked" : "failed", { resultSummary: result.finalOutput.slice(0, 2000) });
+  }
+
+  const isSuccess = opts.verifierCommand ? verifiedPass : (result.ok && handshake);
 
   return {
-    ok: result.ok && handshake,
-    taskId, model: recommendation.modelId, thinking, handshake,
+    ok: isSuccess,
+    taskId,
+    model: recommendation.modelId,
+    thinking,
+    handshake,
     finalOutput: result.finalOutput,
+    verificationOutput,
+    worktreeIsolated: !!worktreeSession,
     usage: result.usage,
-    error: result.error ?? (handshake ? undefined : "worker did not produce a valid summary.json handshake"),
+    error: result.error ?? (!handshake ? "worker did not produce a valid summary.json handshake" : (opts.verifierCommand && !verifiedPass ? "verification command failed" : undefined)),
   };
 }
 

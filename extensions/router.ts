@@ -205,6 +205,8 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       objective: Type.String({ description: "Concrete objective for the worker" }),
       acceptanceCriteria: Type.Optional(Type.Array(Type.String(), { description: "Acceptance checks" })),
+      verifierCommand: Type.Optional(Type.String({ description: "Automated shell command to verify the worker's changes. If it exits 0, worktree changes merge cleanly. If non-zero, worktree changes are discarded." })),
+      isolateWorktree: Type.Optional(Type.Boolean({ description: "Whether to isolate worker in a git worktree (default: true for git repositories)" })),
       role: Type.Optional(Type.String({ description: "Explicit role: planning | code | writing" })),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -212,6 +214,8 @@ export default function (pi: ExtensionAPI) {
       const r = await dispatch(task.id, {
         cwd: ctx.cwd,
         acceptanceCriteria: params.acceptanceCriteria ?? [],
+        verifierCommand: params.verifierCommand,
+        isolateWorktree: params.isolateWorktree,
         role: params.role,
         signal,
       });
@@ -220,11 +224,12 @@ export default function (pi: ExtensionAPI) {
         content: [{
           type: "text",
           text:
-            `${task.id}: worker done=${r.ok} model=${r.model} handshake=${r.handshake ? "ok" : "MISSING"}\n` +
+            `${task.id}: worker done=${r.ok} model=${r.model} handshake=${r.handshake ? "ok" : "MISSING"} worktreeIsolated=${r.worktreeIsolated}\n` +
             `usage: ${r.usage.turns} turns, in ${r.usage.input}, out ${r.usage.output}, $${r.usage.cost.toFixed(4)}\n` +
+            (r.verificationOutput ? `verification: ${r.verificationOutput}\n` : "") +
             `output: ${r.finalOutput.slice(0, 1500)}` +
             (r.error ? `\nerror: ${r.error}` : "") +
-            `\nStatus: ${getTask(task.id)?.status}. Verify independently before accepting.`,
+            `\nStatus: ${getTask(task.id)?.status}.`,
         }],
         details: { taskId: task.id, ...r },
         usage: {

@@ -38,11 +38,24 @@ Planning 100% pass on `claude-sonnet-5`.
 
 ```bash
 npm install
-pi -e ./extensions/router.ts
 ```
 
 Set `OPENROUTER_API_KEY`, or reuse the key stored in `~/.pi/agent/auth.json`.
-Copy `config/models.openrouter.json` into `~/.pi/agent/models.json`. Restart pi.
+Copy `config/models.openrouter.json` into `~/.pi/agent/models.json`.
+
+Auto-load globally:
+```bash
+mkdir -p ~/.pi/agent/extensions
+ln -sf ~/Documents/GitHub/pi-jev-router ~/.pi/agent/extensions/pi-jev-router
+```
+Then start `pi` normally (no `-e` required).
+
+## Worktree isolation
+
+Workers dispatched via `dispatch_task` execute in isolated Git worktrees:
+- Worker edits code on a separate task branch (`task/<id>`).
+- If `verifierCommand` passes (exit 0), changes merge cleanly into the repository.
+- If verification fails or aborts, the worktree is cleaned up without leaving dirty changes.
 
 ## Files
 
