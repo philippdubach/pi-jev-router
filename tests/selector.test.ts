@@ -1,5 +1,5 @@
 // Selector — run: node --experimental-strip-types tests/selector.test.ts
-import { selectModel, feasible, PROFILE_WEIGHTS, PROVEN_RUNS } from "../src/selector.ts";
+import { selectModel, feasible, FALLBACK_MODELS, PROFILE_WEIGHTS, PROVEN_RUNS } from "../src/selector.ts";
 import type { CatalogModel } from "../src/catalog.ts";
 import type { EvidenceIndex } from "../src/evidence.ts";
 import type { TaskEnvelope } from "../src/task-envelope.ts";
@@ -69,25 +69,26 @@ const catalog = [
   model("dear/fable", { promptPrice: 0.00001, completionPrice: 0.00005, aa: { intelligence: 53.4, coding: 81.6, agentic: 57.9 } }),
 ];
 
-const writing = selectModel(env(), answers(1, 0) as any, catalog, {}, "frontier", "writing");
+const writing = selectModel(env(), answers(1, 0) as any, catalog, {}, "writing");
 check("writing route is cheap", writing.modelId === "cheap/flash");
 check("writing reason", writing.reason === "frontier_tangency");
 check("reports candidate count", writing.candidateCount === 3);
 check("reports frontier", Array.isArray(writing.frontier) && writing.frontier.length >= 1);
 
-const planning = selectModel(env(), answers(3, 0) as any, catalog, {}, "frontier", "planning");
+const planning = selectModel(env(), answers(3, 0) as any, catalog, {}, "planning");
 check("planning route favours quality", planning.modelId === "dear/fable");
 
-const pinned = selectModel(env(), answers(1, 0) as any, catalog, {}, "empirical_cost", "code");
-check("pinned profile bypasses frontier", pinned.modelId === "anthropic/claude-sonnet-5" && pinned.reason === "pinned_profile");
+// An empty catalog leaves no frontier to compute, so the fallback table answers.
+const noCatalog = selectModel(env(), answers(1, 0) as any, [], {}, "code");
+check("empty catalog falls back", noCatalog.modelId === FALLBACK_MODELS.code && noCatalog.reason === "catalog_unavailable");
 
 // --- relaxation ---
-const risky = selectModel(env(), answers(1, 3) as any, catalog, {}, "frontier", "code");
+const risky = selectModel(env(), answers(1, 3) as any, catalog, {}, "code");
 check("relaxes proven gate when nothing qualifies", risky.reason === "relaxed_proven_gate");
 check("relaxation still returns a model", risky.modelId.length > 0);
 
 // --- classifier down ---
-const down = selectModel(env(), { ok: false, classifierUnavailable: true, answers: {}, requestedModel: "j", resolvedModel: "j", latencyMs: 0 } as any, catalog, {}, "frontier", "code");
+const down = selectModel(env(), { ok: false, classifierUnavailable: true, answers: {}, requestedModel: "j", resolvedModel: "j", latencyMs: 0 } as any, catalog, {}, "code");
 check("classifier down still selects", down.modelId.length > 0);
 check("classifier down reason", down.reason === "classifier_unavailable");
 
@@ -99,7 +100,7 @@ const kneeCatalog = [
   model("b/mid", { promptPrice: 0.000001, completionPrice: 0.000005, aa: { intelligence: 40, coding: 65, agentic: 40 } }),
   model("c/strong", { promptPrice: 0.00001, completionPrice: 0.00005, aa: { intelligence: 53, coding: 82, agentic: 58 } }),
 ];
-const kneePick = selectModel(env(), answers(1, 0) as any, kneeCatalog, {}, "frontier", "code");
+const kneePick = selectModel(env(), answers(1, 0) as any, kneeCatalog, {}, "code");
 check("three-point frontier picks the knee", kneePick.modelId === "b/mid");
 check("knee reason", kneePick.reason === "frontier_knee");
 

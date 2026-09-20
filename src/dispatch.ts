@@ -103,7 +103,7 @@ export async function routeTask(objective: string, cwd: string, explicitRole?: s
   const workKind = resolveWorkKind(explicitRole, category, objective);
   const { models } = await loadCatalog();
   const evidence = loadEvidence();
-  const r = selectModel(envelope, c, models, evidence, "frontier", workKind);
+  const r = selectModel(envelope, c, models, evidence, workKind);
   const thinking = ROLE_THINKING[workKind];
   return { recommendation: r, thinking, classification: c, workKind };
 }

@@ -1,4 +1,4 @@
-import { PINNED_MODELS, PROFILE_WEIGHTS, ROLE_THINKING, resolveWorkKind } from "../src/selector.ts";
+import { FALLBACK_MODELS, PROFILE_WEIGHTS, ROLE_THINKING, resolveWorkKind } from "../src/selector.ts";
 
 const cases: Array<[string, string, string]> = [
   ["Plan the rollout strategy for an OAuth migration", "architecture", "planning"],
@@ -15,16 +15,14 @@ for (const [prompt, category, expected] of cases) {
   if (!ok) failed++;
 }
 
-// Pinned profiles keep the role models. The frontier profile is weightless:
-// it picks the knee point, so it has no per-role model table.
-const paretoModels = PINNED_MODELS.pareto_code;
-const empiricalModels = PINNED_MODELS.empirical_cost;
-
+// Selection itself is weightless: the router picks the knee point, so there is
+// no per-role model table. The fallback table only answers when the catalog is
+// unavailable, and every entry must name a model that can serve that work.
 const roleAssertions = [
-  paretoModels.planning === "anthropic/claude-sonnet-5",
-  paretoModels.code === "openrouter/pareto-code",
-  paretoModels.writing === "openai/gpt-5.4-mini",
-  empiricalModels.code === "anthropic/claude-sonnet-5",
+  FALLBACK_MODELS.planning === "anthropic/claude-sonnet-5",
+  FALLBACK_MODELS.code === "anthropic/claude-sonnet-5",
+  FALLBACK_MODELS.writing === "openai/gpt-5.4-mini",
+  Object.values(FALLBACK_MODELS).every((id) => id.includes("/")),
   ROLE_THINKING.planning === "high",
   ROLE_THINKING.code === "medium",
   ROLE_THINKING.writing === "low",

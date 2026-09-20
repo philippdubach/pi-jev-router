@@ -6,10 +6,22 @@ import { BENCHMARK_TASKS } from "./tasks.ts";
 import type { BenchmarkTask, RoutingStrategy, TaskRunResult, StrategySummary } from "./types.ts";
 import { verifyCommand } from "./verifiers.ts";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
-import { selectModel, resolveWorkKind, ROLE_THINKING, PINNED_MODELS } from "../src/selector.ts";
+import { selectModel, resolveWorkKind, ROLE_THINKING, type WorkKind } from "../src/selector.ts";
 import { loadCatalog } from "../src/catalog.ts";
 import { loadEvidence } from "../src/evidence.ts";
 import type { TaskEnvelope } from "../src/task-envelope.ts";
+
+/**
+ * Baseline arm for `router_role`: one pinned model per work kind, with
+ * OpenRouter's Pareto Code Router on code. This is a benchmark control, not a
+ * routing policy the extension can select.
+ */
+const ROLE_PINNED_MODELS: Record<WorkKind, string> = {
+  planning: "anthropic/claude-sonnet-5",
+  code: "openrouter/pareto-code",
+  writing: "openai/gpt-5.4-mini",
+  other: "anthropic/claude-sonnet-5",
+};
 
 function getOpenRouterKey(): string | undefined {
   if (process.env.OPENROUTER_API_KEY) return process.env.OPENROUTER_API_KEY;
@@ -81,7 +93,7 @@ async function resolveModelForStrategy(
 
   if (strategy === "router_role") {
     return {
-      model: PINNED_MODELS.pareto_code[workKind],
+      model: ROLE_PINNED_MODELS[workKind],
       thinking: ROLE_THINKING[workKind],
       systemPromptAppend: workKind === "writing" ? WRITING_STYLE_DIRECTIVE : undefined,
       reason: `pinned:${workKind}`,
@@ -91,7 +103,7 @@ async function resolveModelForStrategy(
   // strategy === "router_frontier"
   const { models } = await loadCatalog();
   const evidence = loadEvidence();
-  const recommendation = selectModel(envelope, classification, models, evidence, "frontier", workKind);
+  const recommendation = selectModel(envelope, classification, models, evidence, workKind);
   return {
     model: recommendation.modelId,
     thinking: ROLE_THINKING[workKind],

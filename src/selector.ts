@@ -18,7 +18,6 @@ const DEFAULT_OUTPUT_TOKENS = 1500;
 const OPTIMISTIC_PERCENTILE = 0.6;
 
 export type WorkKind = "planning" | "code" | "writing" | "other";
-export type RouterProfile = "frontier" | "pareto_code" | "empirical_cost";
 
 export interface Weights { lambda: number; mu: number }
 
@@ -29,20 +28,15 @@ export const PROFILE_WEIGHTS: Record<WorkKind, Weights> = {
   other: { lambda: 0.50, mu: 0.25 },
 };
 
-/** Pinned profiles bypass the frontier. They exist so eval can measure against them. */
-export const PINNED_MODELS: Record<"pareto_code" | "empirical_cost", Record<WorkKind, string>> = {
-  pareto_code: {
-    planning: "anthropic/claude-sonnet-5",
-    code: "openrouter/pareto-code",
-    writing: "openai/gpt-5.4-mini",
-    other: "anthropic/claude-sonnet-5",
-  },
-  empirical_cost: {
-    planning: "anthropic/claude-sonnet-5",
-    code: "anthropic/claude-sonnet-5",
-    writing: "openai/gpt-5.4-mini",
-    other: "anthropic/claude-sonnet-5",
-  },
+/**
+ * Used only when the catalog is unavailable, so no frontier can be computed.
+ * These are known-good models, not a selection policy.
+ */
+export const FALLBACK_MODELS: Record<WorkKind, string> = {
+  planning: "anthropic/claude-sonnet-5",
+  code: "anthropic/claude-sonnet-5",
+  writing: "openai/gpt-5.4-mini",
+  other: "anthropic/claude-sonnet-5",
 };
 
 export const ROLE_THINKING: Record<WorkKind, string> = {
@@ -55,7 +49,6 @@ export const ROLE_THINKING: Record<WorkKind, string> = {
 export type RecommendationReason =
   | "frontier_knee"
   | "frontier_tangency"
-  | "pinned_profile"
   | "relaxed_proven_gate"
   | "relaxed_reasoning"
   | "catalog_unavailable"
@@ -218,13 +211,8 @@ export function selectModel(
   classification: ClassificationResult,
   catalog: CatalogModel[],
   evidence: EvidenceIndex,
-  profile: RouterProfile,
   kind: WorkKind,
 ): Recommendation {
-  if (profile !== "frontier") {
-    return { modelId: PINNED_MODELS[profile][kind], reason: "pinned_profile" };
-  }
-
   const answers = classification.answers ?? {};
   const complexity = typeof answers.complexity?.value === "number" ? answers.complexity.value : 1;
   const rawRisk = typeof answers.risk?.value === "number" ? answers.risk.value : 1;
@@ -232,7 +220,7 @@ export function selectModel(
   const risk = classification.classifierUnavailable ? 3 : rawRisk;
 
   if (catalog.length === 0) {
-    return { modelId: PINNED_MODELS.empirical_cost[kind], reason: "catalog_unavailable" };
+    return { modelId: FALLBACK_MODELS[kind], reason: "catalog_unavailable" };
   }
 
   const priors = qualityPrior(catalog, kind);
@@ -277,5 +265,5 @@ export function selectModel(
     };
   }
 
-  return { modelId: PINNED_MODELS.empirical_cost[kind], reason: "catalog_unavailable" };
+  return { modelId: FALLBACK_MODELS[kind], reason: "catalog_unavailable" };
 }

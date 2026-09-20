@@ -45,12 +45,13 @@ features outside this scope. Do not add a server, a dashboard, or an MCP layer.
 ## Tests
 
 ```bash
-node --experimental-strip-types tests/selector.test.ts
-node --experimental-strip-types tests/role-routing.test.ts
-node --experimental-strip-types eval/index.ts
+npm test
 ```
 
-All must pass before you commit. One task per commit. No AI attribution in commit messages.
+`npm test` runs every file in `tests/`. It makes no model calls. `npm run bench`
+runs the live benchmark and costs money, so run it deliberately, not per commit.
+
+All tests must pass before you commit. One task per commit. No AI attribution in commit messages.
 
 ## Cost discipline
 

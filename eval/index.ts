@@ -6,11 +6,13 @@ import type { RoutingStrategy, TaskRunResult, StrategySummary } from "./types.ts
 
 async function main() {
   const args = process.argv.slice(2);
+  // Default to the two arms the router ships: the fixed baseline and the
+  // frontier selector. `--all` adds the pinned role arm as a third control.
   const requestedStrategies: RoutingStrategy[] = args.includes("--all")
     ? ["fixed_frontier", "router_role", "router_frontier"]
     : args.includes("--baseline-only")
     ? ["fixed_frontier"]
-    : ["fixed_frontier", "router_role"];
+    : ["fixed_frontier", "router_frontier"];
 
   const taskFilter = args.find((a) => a.startsWith("--task="))?.split("=")[1];
   const tasksToRun = taskFilter

@@ -21,7 +21,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
-import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Recommendation, type WorkKind, type RouterProfile } from "../src/selector.ts";
+import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Recommendation, type WorkKind } from "../src/selector.ts";
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
@@ -34,7 +34,6 @@ type Mode = "shadow" | "auto" | "off";
 
 export default function (pi: ExtensionAPI) {
   let mode: Mode = "shadow";
-  let profile: RouterProfile = "frontier";
   let pinnedModelId: string | undefined; // explicit /router pin
   let manualPin: string | undefined;     // user's own /model change since last routing
   let sessionBudgetUsd: number | undefined;
@@ -61,12 +60,11 @@ export default function (pi: ExtensionAPI) {
 
   const showStatus = (ctx: any) => {
     const label = mode === "shadow" ? "SHADOW" : mode === "auto" ? "AUTO" : "OFF";
-    const prof = mode === "auto" ? `[${profile}]` : "";
     const pin = pinnedModelId ? ` · pinned:${pinnedModelId}` : "";
     const budget = sessionBudgetUsd !== undefined ? ` · $${sessionSpendUsd.toFixed(4)}/$${sessionBudgetUsd}` : "";
     ctx.ui.setStatus(
       "jev-router",
-      `${label}${prof}${pin} · ${lastDecision ? lastDecision.recommendation.modelId : "idle"}`,
+      `${label}${pin} · ${lastDecision ? lastDecision.recommendation.modelId : "idle"}`,
     );
   };
 
@@ -116,7 +114,7 @@ export default function (pi: ExtensionAPI) {
     const workKind = resolveWorkKind(undefined, category, event.prompt);
     await ensureCatalog();
     // The pick is computed from the live feasible frontier for this task.
-    const recommendation = selectModel(envelope, classification, catalogCache, evidenceCache, profile, workKind);
+    const recommendation = selectModel(envelope, classification, catalogCache, evidenceCache, workKind);
     let note = !available ? `classifier unavailable (${classification.error}) — static fallback` : undefined;
 
     // Respect pins.
@@ -263,7 +261,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("router", {
-    description: "Jev router: status | shadow | auto | off | profile | pin | budget | test | frontier",
+    description: "Jev router: status | shadow | auto | off | pin | budget | test | frontier",
     handler: async (args, ctx) => {
       const parts = (args ?? "").trim().split(/\s+/);
       const sub = parts[0] || "status";
@@ -286,20 +284,15 @@ export default function (pi: ExtensionAPI) {
           applyMode(ctx);
           ctx.ui.notify("jev-router: disabled", "info");
           break;
-        case "profile": {
-          const p = parts[1] as RouterProfile;
-          if (p === "pareto_code" || p === "empirical_cost" || p === "frontier") {
-            profile = p;
-            applyMode(ctx);
-            ctx.ui.notify(`jev-router: profile set to ${p}`, "info");
-          } else {
-            ctx.ui.notify(`current profile: ${profile} — usage: /router profile frontier | pareto_code | empirical_cost`, "info");
-          }
-          break;
-        }
         case "pin": {
           if (!id) {
-            ctx.ui.notify(pinnedModelId ? `pinned: ${pinnedModelId}` : "no pin — usage: /router pin <openrouter-model-id>", "info");
+            ctx.ui.notify(pinnedModelId ? `pinned: ${pinnedModelId} — /router pin off releases it` : "no pin — usage: /router pin <openrouter-model-id>", "info");
+            break;
+          }
+          if (id === "off" || id === "none") {
+            pinnedModelId = undefined;
+            applyMode(ctx);
+            ctx.ui.notify("jev-router: pin released", "info");
             break;
           }
           pinnedModelId = id;
@@ -331,7 +324,7 @@ export default function (pi: ExtensionAPI) {
           const cat = String((c.answers as any)?.category?.value ?? "");
           const wk = resolveWorkKind(undefined, cat, envelope.objective);
           await ensureCatalog();
-          const r = selectModel(envelope, c, catalogCache, evidenceCache, profile, wk);
+          const r = selectModel(envelope, c, catalogCache, evidenceCache, wk);
           ctx.ui.notify(
             `test: ${r.modelId} (${r.reason})` +
               (c.ok ? ` · category=${String((c.answers.category as any)?.value)} complexity=${(c.answers.complexity as any)?.value} risk=${(c.answers.risk as any)?.value}` : ` · ${c.error}`),
@@ -364,7 +357,7 @@ export default function (pi: ExtensionAPI) {
         }
         default: {
           const lines = [
-            `mode: ${mode} (profile: ${profile})`,
+            `mode: ${mode}`,
             `pin: ${pinnedModelId ?? "none"} · manual model change: ${manualPin ?? "none"}`,
             `budget: ${sessionBudgetUsd !== undefined ? "$" + sessionBudgetUsd : "unset"} · spent $${sessionSpendUsd.toFixed(4)}`,
             lastDecision ? `last: ${lastDecision.recommendation.modelId} (${lastDecision.recommendation.reason})` : "no decision yet",
