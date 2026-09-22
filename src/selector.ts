@@ -12,6 +12,8 @@ import { WRITING_ELO } from "./writing-prior.ts";
 
 export const K = 5;
 export const PROVEN_RUNS = 3;
+/** Pseudo-count anchoring the pass-rate posterior to the catalog prior. */
+export const EVIDENCE_PSEUDO_COUNT = 2;
 export const CONTEXT_HEADROOM = 1.3;
 const DEFAULT_TURNS = 4;
 const DEFAULT_OUTPUT_TOKENS = 1500;
@@ -168,6 +170,25 @@ function shrink(n: number): number {
   return n / (n + K);
 }
 
+/**
+ * Posterior pass rate for one model and work kind.
+ *
+ * The observed rate is smoothed toward the catalog prior, not toward 0.5.
+ * Smoothing toward 0.5 mixes two incompatible scales: an absolute pass rate
+ * and a prior that is a min-max rank within the catalog. It also punishes a
+ * clean record, because (passes + 1) / (runs + 2) cannot exceed the prior
+ * until many runs accumulate. Sonnet passing 3 of 3 coding tasks scored below
+ * its own prior under that rule.
+ *
+ * Smoothing toward the prior keeps an untested model at its prior, lets a
+ * clean record raise it, and lets failures pull it down hard.
+ */
+export function posteriorQuality(passes: number, runs: number, prior: number): number {
+  if (!Number.isFinite(runs) || runs <= 0) return prior;
+  const observed = Math.min(Math.max(passes, 0), runs);
+  return (observed + EVIDENCE_PSEUDO_COUNT * prior) / (runs + EVIDENCE_PSEUDO_COUNT);
+}
+
 function score(
   m: CatalogModel,
   env: TaskEnvelope,
@@ -180,9 +201,8 @@ function score(
   const n = st?.runs ?? 0;
   const w = shrink(n);
 
-  const qObs = st ? (st.passes + 1) / (st.runs + 2) : 0;
   const qPrior = priors.get(m.id) ?? 0.5;
-  const q = w * qObs + (1 - w) * qPrior;
+  const q = st ? posteriorQuality(st.passes, st.runs, qPrior) : qPrior;
 
   const cEstimate =
     DEFAULT_TURNS *
