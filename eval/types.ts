@@ -10,7 +10,8 @@ export interface BenchmarkTask {
   customVerifier?: (workspaceDir: string) => Promise<{ ok: boolean; message: string }>;
 }
 
-export type RoutingStrategy = "fixed_frontier" | "router_role" | "router_frontier";
+/** `model:<id>` pins a single model, for measuring it directly. */
+export type RoutingStrategy = "fixed_frontier" | "router_role" | "router_frontier" | `model:${string}`;
 
 export interface TaskRunResult {
   taskId: string;

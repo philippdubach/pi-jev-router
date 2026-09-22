@@ -14,6 +14,12 @@ export const K = 5;
 export const PROVEN_RUNS = 3;
 /** Pseudo-count anchoring the pass-rate posterior to the catalog prior. */
 export const EVIDENCE_PSEUDO_COUNT = 2;
+/**
+ * A model with measured runs must keep a posterior above this to stay
+ * eligible. Applies only once evidence exists, so an untested model is not
+ * blocked by it.
+ */
+export const QUALITY_FLOOR = 0.55;
 export const CONTEXT_HEADROOM = 1.3;
 const DEFAULT_TURNS = 4;
 const DEFAULT_OUTPUT_TOKENS = 1500;
@@ -146,7 +152,13 @@ export function feasible(
   risk: number,
   kind: WorkKind,
   evidence: EvidenceIndex,
-  opts: { ignoreProvenGate?: boolean; ignoreReasoning?: boolean; now?: number } = {},
+  opts: {
+    ignoreProvenGate?: boolean;
+    ignoreReasoning?: boolean;
+    ignoreQualityFloor?: boolean;
+    priors?: Map<string, number>;
+    now?: number;
+  } = {},
 ): boolean {
   const now = opts.now ?? Date.now();
   // Sentinel and serving-mode guards. A negative price is a router meta-model,
@@ -162,6 +174,16 @@ export function feasible(
   if (m.expiresAt !== null && m.expiresAt <= now) return false;
   if (!opts.ignoreProvenGate && risk >= 2) {
     if ((statsFor(evidence, m.id, kind)?.runs ?? 0) < PROVEN_RUNS) return false;
+  }
+  // Demonstrated-failure gate. A cheap model can otherwise win on price alone:
+  // the writing profile is cost averse enough that a model which failed the
+  // writing benchmark still took the knee. Measured failure outranks price.
+  if (!opts.ignoreQualityFloor) {
+    const st = statsFor(evidence, m.id, kind);
+    if (st && st.runs > 0) {
+      const prior = opts.priors?.get(m.id) ?? 0.5;
+      if (posteriorQuality(st.passes, st.runs, prior) < QUALITY_FLOOR) return false;
+    }
   }
   return true;
 }
@@ -246,10 +268,13 @@ export function selectModel(
   const priors = qualityPrior(catalog, kind);
   const { prior: latPrior, present: latPresent } = latencySignal(evidence, kind);
 
+  // The quality floor is relaxed last: a measured failure should outrank both
+  // the proven gate and the reasoning requirement.
   const attempts: Array<{ opts: Parameters<typeof feasible>[5]; reason: RecommendationReason }> = [
-    { opts: {}, reason: "frontier_tangency" },
-    { opts: { ignoreProvenGate: true }, reason: "relaxed_proven_gate" },
-    { opts: { ignoreProvenGate: true, ignoreReasoning: true }, reason: "relaxed_reasoning" },
+    { opts: { priors }, reason: "frontier_tangency" },
+    { opts: { priors, ignoreProvenGate: true }, reason: "relaxed_proven_gate" },
+    { opts: { priors, ignoreProvenGate: true, ignoreReasoning: true }, reason: "relaxed_reasoning" },
+    { opts: { priors, ignoreProvenGate: true, ignoreReasoning: true, ignoreQualityFloor: true }, reason: "relaxed_reasoning" },
   ];
 
   for (const attempt of attempts) {

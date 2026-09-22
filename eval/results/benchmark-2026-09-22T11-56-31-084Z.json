@@ -1,0 +1,262 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 3,
+      "passedTasks": 2,
+      "passRate": 66.66666666666666,
+      "totalCostUsd": 0.0017862222000000001,
+      "costPerSuccessUsd": 0.0008931111000000001,
+      "avgLatencyMs": 12264.333333333334,
+      "totalTokens": 191757
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 3,
+      "passedTasks": 2,
+      "passRate": 66.66666666666666,
+      "totalCostUsd": 0.012374149999999999,
+      "costPerSuccessUsd": 0.006187074999999999,
+      "avgLatencyMs": 9522,
+      "totalTokens": 154743
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 3,
+      "passedTasks": 3,
+      "passRate": 100,
+      "totalCostUsd": 0.00988108,
+      "costPerSuccessUsd": 0.0032936933333333335,
+      "avgLatencyMs": 29141.333333333332,
+      "totalTokens": 310318
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 3,
+      "passedTasks": 3,
+      "passRate": 100,
+      "totalCostUsd": 0.2223941,
+      "costPerSuccessUsd": 0.07413136666666667,
+      "avgLatencyMs": 18926.666666666668,
+      "totalTokens": 245641
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 13088,
+      "tokens": {
+        "input": 15637,
+        "output": 1543,
+        "cacheRead": 39808,
+        "cacheWrite": 0,
+        "total": 56988
+      },
+      "costUsd": 0.0005927796,
+      "turns": 4
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 17863,
+      "tokens": {
+        "input": 10873,
+        "output": 2537,
+        "cacheRead": 107328,
+        "cacheWrite": 0,
+        "total": 120738
+      },
+      "costUsd": 0.0008389416,
+      "turns": 7
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "passed": false,
+      "verifierOutput": "No output file. Checked: /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mucm7lfk/model:inclusionai/ling-3.0-flash/write_strict_ste/runbook.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mucm7lfk/model:inclusionai/ling-3.0-flash/write_strict_ste/output.md",
+      "latencyMs": 5842,
+      "tokens": {
+        "input": 12606,
+        "output": 1425,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 14031
+      },
+      "costUsd": 0.000354501,
+      "turns": 1
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 8570,
+      "tokens": {
+        "input": 13328,
+        "output": 591,
+        "cacheRead": 36992,
+        "cacheWrite": 0,
+        "total": 50911
+      },
+      "costUsd": 0.0041443,
+      "turns": 4
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 8470,
+      "tokens": {
+        "input": 9689,
+        "output": 666,
+        "cacheRead": 55360,
+        "cacheWrite": 0,
+        "total": 65715
+      },
+      "costUsd": 0.0045543499999999995,
+      "turns": 5
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "passed": false,
+      "verifierOutput": "Strict STE failed:\n- 1 compound instruction(s). First: \"Record the restart time, backlog count, and cause in the incident log.\"",
+      "latencyMs": 11526,
+      "tokens": {
+        "input": 13012,
+        "output": 1041,
+        "cacheRead": 24064,
+        "cacheWrite": 0,
+        "total": 38117
+      },
+      "costUsd": 0.0036755,
+      "turns": 3
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 36709,
+      "tokens": {
+        "input": 32892,
+        "output": 2031,
+        "cacheRead": 130048,
+        "cacheWrite": 0,
+        "total": 164971
+      },
+      "costUsd": 0.004696288000000001,
+      "turns": 9
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 32593,
+      "tokens": {
+        "input": 12834,
+        "output": 2571,
+        "cacheRead": 89856,
+        "cacheWrite": 0,
+        "total": 105261
+      },
+      "costUsd": 0.0035964960000000002,
+      "turns": 7
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 35 sentences, all <= 20 words, 14 imperative steps.",
+      "latencyMs": 18122,
+      "tokens": {
+        "input": 13221,
+        "output": 1009,
+        "cacheRead": 25856,
+        "cacheWrite": 0,
+        "total": 40086
+      },
+      "costUsd": 0.001588296,
+      "turns": 3
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 20618,
+      "tokens": {
+        "input": 10,
+        "output": 1078,
+        "cacheRead": 80697,
+        "cacheWrite": 20025,
+        "total": 101810
+      },
+      "costUsd": 0.07700190000000001,
+      "turns": 5
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 24819,
+      "tokens": {
+        "input": 10,
+        "output": 1623,
+        "cacheRead": 81607,
+        "cacheWrite": 20809,
+        "total": 104049
+      },
+      "costUsd": 0.0845939,
+      "turns": 5
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 36 sentences, all <= 20 words, 14 imperative steps.",
+      "latencyMs": 11343,
+      "tokens": {
+        "input": 4,
+        "output": 723,
+        "cacheRead": 19164,
+        "cacheWrite": 19891,
+        "total": 39782
+      },
+      "costUsd": 0.060798300000000007,
+      "turns": 2
+    }
+  ]
+}

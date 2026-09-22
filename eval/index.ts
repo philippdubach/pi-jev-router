@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { BENCHMARK_TASKS } from "./tasks.ts";
+import { HARD_TASKS } from "./hard-tasks.ts";
 import { runTaskForStrategy, summarizeStrategy } from "./runner.ts";
 import type { RoutingStrategy, TaskRunResult, StrategySummary } from "./types.ts";
 
@@ -8,16 +9,27 @@ async function main() {
   const args = process.argv.slice(2);
   // Default to the two arms the router ships: the fixed baseline and the
   // frontier selector. `--all` adds the pinned role arm as a third control.
-  const requestedStrategies: RoutingStrategy[] = args.includes("--all")
+  // `--models a,b,c` measures each model directly instead of routing.
+  const modelsArg = args.find((a) => a.startsWith("--models="))?.split("=")[1];
+  const requestedStrategies: RoutingStrategy[] = modelsArg
+    ? modelsArg.split(",").map((m) => `model:${m.trim()}` as RoutingStrategy)
+    : args.includes("--all")
     ? ["fixed_frontier", "router_role", "router_frontier"]
     : args.includes("--baseline-only")
     ? ["fixed_frontier"]
     : ["fixed_frontier", "router_frontier"];
 
+  // The original tasks were passed by every model, so they carry no quality
+  // signal. `--hard` runs only the discriminating set; `--suite` runs both.
+  const pool = args.includes("--hard")
+    ? HARD_TASKS
+    : args.includes("--suite")
+      ? [...BENCHMARK_TASKS, ...HARD_TASKS]
+      : BENCHMARK_TASKS;
   const taskFilter = args.find((a) => a.startsWith("--task="))?.split("=")[1];
   const tasksToRun = taskFilter
-    ? BENCHMARK_TASKS.filter((t) => t.id === taskFilter)
-    : BENCHMARK_TASKS;
+    ? [...BENCHMARK_TASKS, ...HARD_TASKS].filter((t) => t.id === taskFilter)
+    : pool;
 
   console.log("========================================================================");
   console.log("  PI JEV ROUTER - STRUCTURED EXECUTION BENCHMARK SUITE");

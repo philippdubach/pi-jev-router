@@ -62,6 +62,17 @@ async function resolveModelForStrategy(
   strategy: RoutingStrategy,
   task: BenchmarkTask
 ): Promise<ModelSelection> {
+  // `model:<id>` pins one model so the suite can measure it directly. Evidence
+  // needs per-model pass rates; routing arms only ever exercise the winner.
+  if (strategy.startsWith("model:")) {
+    const model = strategy.slice("model:".length);
+    return {
+      model,
+      thinking: task.kind === "writing" ? "low" : task.kind === "planning" ? "high" : "medium",
+      systemPromptAppend: task.kind === "writing" ? WRITING_STYLE_DIRECTIVE : undefined,
+      reason: "pinned_model",
+    };
+  }
   if (strategy === "fixed_frontier") {
     return {
       model: "anthropic/claude-sonnet-5",
@@ -257,7 +268,9 @@ export async function runTaskForStrategy(
   task: BenchmarkTask,
   strategy: RoutingStrategy
 ): Promise<TaskRunResult> {
-  const workspaceDir = join(BASE_EVAL_DIR, strategy, task.id);
+  // A `model:<id>` strategy contains slashes, which would nest the workspace
+  // one directory per path segment.
+  const workspaceDir = join(BASE_EVAL_DIR, strategy.replace(/[^\w.-]+/g, "_"), task.id);
   mkdirSync(workspaceDir, { recursive: true });
 
   // 1. Setup workspace files
