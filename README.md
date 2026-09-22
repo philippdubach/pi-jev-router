@@ -25,6 +25,26 @@ for the case where the catalog cannot be fetched and no frontier exists.
 Writing tasks get STE and Humanizer rules. Code tasks run unit tests.
 Planning tasks get a structure check.
 
+## Subscription routing
+
+Off by default. The frontier picks the model; this only changes how that model
+is reached.
+
+```text
+/router subscription openai-codex     route through a logged-in plan
+/router subscription off              back to metered routes
+/router subscription                  show status and cooldowns
+```
+
+A plan route is best effort. A ChatGPT account does not support every Codex
+model, and a plan can hit its usage limit mid-session. Both refusals put the
+route on a cooldown and fall back to the metered route: unsupported for 30
+days, usage limit for an hour, anything else for ten minutes.
+
+Anthropic is a different case. Pi lists the same price on both routes, and pi's
+docs state that third-party harness usage draws from extra usage billed per
+token rather than plan limits. Enabling it changes the invoice, not the cost.
+
 ## Commands
 
 ```text
@@ -36,15 +56,30 @@ Planning tasks get a structure check.
 /router pin <id>  force a model
 /router pin off   release the pin
 /router budget <usd>
+/router subscription <provider,...> | off
 /router test      classify a sample task and show the pick
 ```
 
 ## Benchmarks
 
 ```bash
-npm run bench              # fixed baseline vs frontier router
-npm run bench -- --all     # adds the pinned role arm as a third control
+npm run bench                    # fixed baseline vs frontier router
+npm run bench -- --all           # adds the pinned role arm as a third control
+npm run bench -- --hard          # only the discriminating tasks
+npm run bench -- --suite         # every task
+npm run bench -- --models=a,b    # measure named models directly
 ```
+
+The original five tasks were passed by every model tried, so their pass rates
+carried no quality signal. `--hard` adds three tasks with a specific failure
+mode: a cache stampede under concurrent misses, a rename that must reach a
+barrel export and a string-keyed registry, and a runbook under hard
+sentence-length and voice limits. Each verifier was checked against both the
+starting state and a correct solution.
+
+Measured over four models, the writing task separated them: `ling-3.0-flash`
+wrote no file and `glm-5.3-flash` produced a compound instruction, while
+`deepseek-v4-flash-0731` and `claude-sonnet-5` passed all three.
 
 Five tasks, three code and two non-code, each in an isolated workspace with an
 independent verifier. Last recorded run (`eval/results/`, 2026-09-20):

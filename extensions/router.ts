@@ -25,6 +25,13 @@ import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Reco
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
+import {
+  blockRoute,
+  loadState,
+  resolveSubscriptionRoute,
+  saveState,
+  type SubscriptionState,
+} from "../src/subscription.ts";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
@@ -41,6 +48,13 @@ export default function (pi: ExtensionAPI) {
   let sessionSpendUsd = 0;
   let inTask = false;                    // stickiness window
   let suppressModelSelect = false;       // guard: our own setModel calls
+
+  // Subscription routing. Off unless the user enables a provider, because a
+  // plan route can refuse mid-session and silently changing billing is worse
+  // than paying the metered rate.
+  let subscriptionEnabled: string[] = [];
+  let subscriptionState: SubscriptionState = loadState();
+  let lastRoutedVia: string | undefined;
 
   let lastDecision:
     | { ts: string; recommendation: Recommendation; classification?: ClassificationResult; note?: string; switched?: boolean }
@@ -75,6 +89,22 @@ export default function (pi: ExtensionAPI) {
   };
 
   pi.on("session_start", async (_event, ctx) => applyMode(ctx));
+
+  // A subscription refuses at request time, not at model selection. Watch for
+  // the failure, put the route on cooldown and hand the turn back to the user
+  // on the metered route.
+  pi.on("message_end", async (event, ctx) => {
+    const message: any = event.message;
+    if (message?.role !== "assistant" || !message.errorMessage) return;
+    const provider = message.provider;
+    if (!provider || !subscriptionEnabled.includes(provider)) return;
+    subscriptionState = blockRoute(subscriptionState, { provider, modelId: message.model }, String(message.errorMessage));
+    saveState(subscriptionState);
+    ctx.ui.notify(
+      `jev-router: ${provider}/${message.model} refused (${String(message.errorMessage).slice(0, 80)}) \u2014 route on cooldown`,
+      "warning",
+    );
+  });
 
   // Treat user-driven model changes as a manual pin until /router auto|shadow re-enables routing.
   pi.on("model_select", async (event) => {
@@ -207,10 +237,48 @@ export default function (pi: ExtensionAPI) {
     }
     // Thinking level: role-specific, else a safe default.
     const level = roleThinking ?? "medium";
+
+    // Prefer a subscription route to the same model. The frontier already chose
+    // the model; this only changes how it is reached. A refusal falls back to
+    // the metered route rather than failing the task.
+    let target = candidate;
+    let routedVia: string | undefined;
+    if (subscriptionEnabled.length > 0) {
+      const available = new Set<string>(
+        (ctx.modelRegistry?.getAvailable?.() ?? []).map((m: any) => `${m.provider}/${m.id}`),
+      );
+      const resolved = resolveSubscriptionRoute(openrouterModelId, {
+        enabledProviders: subscriptionEnabled,
+        availableRoutes: available,
+        state: subscriptionState,
+      });
+      if (resolved.route) {
+        const subModel = (ctx.modelRegistry?.getAvailable?.() ?? []).find(
+          (m: any) => m.provider === resolved.route!.provider && m.id === resolved.route!.modelId,
+        );
+        if (subModel) {
+          target = subModel;
+          routedVia = resolved.route.provider;
+        }
+      }
+    }
+
     suppressModelSelect = true;
     try {
-      const ok = await pi.setModel(candidate);
-      if (ok !== false) pi.setThinkingLevel(level as any);
+      let ok = await pi.setModel(target);
+      if (ok === false && routedVia) {
+        // The subscription route refused. Record it and use the metered route.
+        subscriptionState = blockRoute(subscriptionState, { provider: target.provider, modelId: target.id }, "setModel refused");
+        saveState(subscriptionState);
+        ctx.ui.notify(`jev-router: ${routedVia} route refused ${target.id} — using metered route`, "warning");
+        routedVia = undefined;
+        target = candidate;
+        ok = await pi.setModel(target);
+      }
+      if (ok !== false) {
+        pi.setThinkingLevel(level as any);
+        lastRoutedVia = routedVia;
+      }
       return ok !== false;
     } finally {
       suppressModelSelect = false;
@@ -305,6 +373,37 @@ export default function (pi: ExtensionAPI) {
           pinnedModelId = id;
           applyMode(ctx);
           ctx.ui.notify(`jev-router: pinned to ${id}`, "info");
+          break;
+        }
+        case "subscription": {
+          const arg = (parts[1] ?? "").trim();
+          if (arg === "off") {
+            subscriptionEnabled = [];
+            ctx.ui.notify("jev-router: subscription routing off; all traffic uses the metered route", "info");
+            break;
+          }
+          if (arg) {
+            subscriptionEnabled = arg.split(",").map((s) => s.trim()).filter(Boolean);
+            ctx.ui.notify(
+              `jev-router: subscription routing via ${subscriptionEnabled.join(", ")}. ` +
+                "The frontier still picks the model; only the route changes.",
+              "warning",
+            );
+            break;
+          }
+          const now = Date.now();
+          const blocked = Object.entries(subscriptionState.blockedUntil)
+            .filter(([, until]) => until > now)
+            .map(([key, until]) => `  ${key}: ${subscriptionState.lastReason[key] ?? "blocked"} (${Math.ceil((until - now) / 60000)}m left)`);
+          ctx.ui.notify(
+            [
+              `subscription routing: ${subscriptionEnabled.length ? subscriptionEnabled.join(", ") : "off"}`,
+              `last route used: ${lastRoutedVia ?? "metered"}`,
+              blocked.length ? `on cooldown:\n${blocked.join("\n")}` : "no routes on cooldown",
+              "usage: /router subscription <provider,...> | off",
+            ].join("\n"),
+            "info",
+          );
           break;
         }
         case "budget": {
