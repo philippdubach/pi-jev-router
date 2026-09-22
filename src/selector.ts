@@ -18,8 +18,14 @@ export const EVIDENCE_PSEUDO_COUNT = 2;
  * A model with measured runs must keep a posterior above this to stay
  * eligible. Applies only once evidence exists, so an untested model is not
  * blocked by it.
+ *
+ * Placed in the widest gap in the measured distribution rather than by taste.
+ * Across 63 runs the posteriors fall at 0.584, 0.584, then 0.712 and upward,
+ * so 0.65 separates the cells measured at half their runs from every cell with
+ * a clear majority. A floor inside a cluster would flip on one more run, which
+ * is how an earlier turn budget placed at the median went wrong.
  */
-export const QUALITY_FLOOR = 0.55;
+export const QUALITY_FLOOR = 0.65;
 export const CONTEXT_HEADROOM = 1.3;
 const DEFAULT_TURNS = 4;
 const DEFAULT_OUTPUT_TOKENS = 1500;

@@ -15,6 +15,28 @@ export interface EvalRow {
   passed: boolean;
   costUsd: number;
   latencyMs: number;
+  /** Verifier verdict before any turn budget. Older files omit it. */
+  correct?: boolean;
+  turns?: number;
+}
+
+/**
+ * Turns allowed before a run counts as a runaway loop.
+ *
+ * Applied when the evidence is read, not when it is recorded, so the threshold
+ * can change without invalidating past runs. It sits well above the observed
+ * median of six: at that value a single extra turn flipped a verdict, and 10
+ * of 13 recorded failures were models that had solved the task correctly.
+ * Efficiency is already carried by the cost axis, since more turns means more
+ * tokens.
+ */
+export const TURN_BUDGET = 12;
+
+/** Score one recorded run under the current budget. */
+export function scoreRow(row: EvalRow): boolean {
+  if (row.correct === undefined) return row.passed;
+  if (!row.correct) return false;
+  return row.turns === undefined || row.turns <= TURN_BUDGET;
 }
 
 export interface ModelStats {
@@ -44,7 +66,7 @@ export function buildEvidence(rows: EvalRow[]): EvidenceIndex {
     const byModel = (acc[row.modelUsed] ??= {});
     const cell = (byModel[kind] ??= { runs: 0, passes: 0, cost: 0, latency: 0 });
     cell.runs += 1;
-    if (row.passed) cell.passes += 1;
+    if (scoreRow(row)) cell.passes += 1;
     cell.cost += row.costUsd;
     cell.latency += row.latencyMs;
   }
@@ -91,6 +113,8 @@ export function loadEvidence(dir = join(import.meta.dirname, "..", "eval", "resu
           passed: Boolean(r.passed),
           costUsd: Number(r.costUsd),
           latencyMs: Number(r.latencyMs),
+          correct: typeof r.correct === "boolean" ? r.correct : undefined,
+          turns: Number.isFinite(r.turns) ? Number(r.turns) : undefined,
         });
       }
     } catch {

@@ -9,13 +9,14 @@ export interface BenchmarkTask {
   verifierCommand?: string;
   customVerifier?: (workspaceDir: string) => Promise<{ ok: boolean; message: string }>;
   /**
-   * Turns allowed to reach a passing state.
+   * Turns allowed before a run counts as a runaway loop.
    *
-   * A deterministic test suite is a feedback loop: the agent sees each failure
-   * and tries again, so correctness alone separates almost nothing. Every model
-   * measured so far reached green on every code task. What differs is how many
-   * attempts it took, and each attempt costs money and time. Exceeding the
-   * budget is a failure.
+   * This is a safety rail, not an efficiency ranking. An earlier version set it
+   * at six, which was the median of the observed distribution, so a single
+   * extra turn flipped a verdict and 10 of 13 recorded failures were models
+   * that had solved the task correctly. Efficiency is already priced into the
+   * cost axis, because more turns means more tokens; scoring it again as a
+   * quality failure double-counts it and adds noise.
    */
   maxTurns?: number;
 }
@@ -28,6 +29,9 @@ export interface TaskRunResult {
   strategy: RoutingStrategy;
   modelUsed: string;
   thinkingUsed: string;
+  /** Verifier verdict alone, independent of any turn budget. */
+  correct: boolean;
+  /** `correct` after the budget is applied. Kept for reports. */
   passed: boolean;
   verifierOutput: string;
   latencyMs: number;

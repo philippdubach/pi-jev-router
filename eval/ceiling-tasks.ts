@@ -23,7 +23,7 @@ export const CEILING_TASKS: BenchmarkTask[] = [
     id: "code_distant_cause",
     name: "Fix a default that is overwritten two modules away",
     kind: "code",
-    maxTurns: 6,
+    maxTurns: 12,
     prompt:
       "`app.ts` reports the wrong timeout and the wrong retry count. The failing assertion is in the service layer, " +
       "but the cause is not there. Find it and fix it. " +
@@ -131,7 +131,7 @@ console.log("HIDDEN CONFIG TESTS PASSED");
     id: "code_interval_merge",
     name: "Implement interval merging against a partly hidden suite",
     kind: "code",
-    maxTurns: 6,
+    maxTurns: 12,
     prompt:
       "Implement `mergeIntervals` in `intervals.ts`. " +
       "Specification: the input is an array of `[start, end]` pairs with `start <= end`, in any order. " +
@@ -204,7 +204,7 @@ console.log("HIDDEN INTERVAL TESTS PASSED");
     id: "code_thread_field",
     name: "Thread a new field through every consumer",
     kind: "code",
-    maxTurns: 6,
+    maxTurns: 12,
     prompt:
       "Add a `priority` field to the event pipeline. " +
       "Specification: `priority` is one of `low`, `normal` or `high`, and defaults to `normal` when an event omits it. " +

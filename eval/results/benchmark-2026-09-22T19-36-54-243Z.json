@@ -1,0 +1,122 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 1,
+      "passedTasks": 0,
+      "passRate": 0,
+      "totalCostUsd": 0.000913689,
+      "costPerSuccessUsd": 0.000913689,
+      "avgLatencyMs": 23046,
+      "totalTokens": 48049
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 1,
+      "passedTasks": 0,
+      "passRate": 0,
+      "totalCostUsd": 0.0027957,
+      "costPerSuccessUsd": 0.0027957,
+      "avgLatencyMs": 7116,
+      "totalTokens": 24958
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.00150536,
+      "costPerSuccessUsd": 0.00150536,
+      "avgLatencyMs": 33574,
+      "totalTokens": 26099
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.0570619,
+      "costPerSuccessUsd": 0.0570619,
+      "avgLatencyMs": 9737,
+      "totalTokens": 39622
+    }
+  ],
+  "results": [
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Strict STE failed:\n- 4 step(s) do not start with an imperative verb. First: \"1. You have access to the queue management console.\"",
+      "latencyMs": 23046,
+      "tokens": {
+        "input": 28815,
+        "output": 3874,
+        "cacheRead": 15360,
+        "cacheWrite": 0,
+        "total": 48049
+      },
+      "costUsd": 0.000913689,
+      "turns": 3
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Strict STE failed:\n- 1 compound instruction(s). First: \"Record all actions and outcomes in the incident ticket.\"",
+      "latencyMs": 7116,
+      "tokens": {
+        "input": 12526,
+        "output": 656,
+        "cacheRead": 11776,
+        "cacheWrite": 0,
+        "total": 24958
+      },
+      "costUsd": 0.0027957,
+      "turns": 2
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 31 sentences, all <= 20 words, 9 imperative steps.",
+      "latencyMs": 33574,
+      "tokens": {
+        "input": 25330,
+        "output": 769,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 26099
+      },
+      "costUsd": 0.00150536,
+      "turns": 2
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 30 sentences, all <= 20 words, 12 imperative steps.",
+      "latencyMs": 9737,
+      "tokens": {
+        "input": 4,
+        "output": 644,
+        "cacheRead": 20357,
+        "cacheWrite": 18617,
+        "total": 39622
+      },
+      "costUsd": 0.0570619,
+      "turns": 2
+    }
+  ]
+}
