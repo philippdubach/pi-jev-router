@@ -8,6 +8,16 @@ export interface BenchmarkTask {
   setupFiles?: Record<string, string>;
   verifierCommand?: string;
   customVerifier?: (workspaceDir: string) => Promise<{ ok: boolean; message: string }>;
+  /**
+   * Turns allowed to reach a passing state.
+   *
+   * A deterministic test suite is a feedback loop: the agent sees each failure
+   * and tries again, so correctness alone separates almost nothing. Every model
+   * measured so far reached green on every code task. What differs is how many
+   * attempts it took, and each attempt costs money and time. Exceeding the
+   * budget is a failure.
+   */
+  maxTurns?: number;
 }
 
 /** `model:<id>` pins a single model, for measuring it directly. */

@@ -1,0 +1,262 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 3,
+      "passedTasks": 2,
+      "passRate": 66.66666666666666,
+      "totalCostUsd": 0.0022999241999999997,
+      "costPerSuccessUsd": 0.0011499620999999999,
+      "avgLatencyMs": 16977.666666666668,
+      "totalTokens": 330625
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 3,
+      "passedTasks": 3,
+      "passRate": 100,
+      "totalCostUsd": 0.017175100000000002,
+      "costPerSuccessUsd": 0.005725033333333334,
+      "avgLatencyMs": 40487.333333333336,
+      "totalTokens": 186826
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 3,
+      "passedTasks": 1,
+      "passRate": 33.33333333333333,
+      "totalCostUsd": 0.012845016,
+      "costPerSuccessUsd": 0.012845016,
+      "avgLatencyMs": 58188.666666666664,
+      "totalTokens": 392820
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 3,
+      "passedTasks": 3,
+      "passRate": 100,
+      "totalCostUsd": 0.2463736,
+      "costPerSuccessUsd": 0.08212453333333333,
+      "avgLatencyMs": 23230.666666666668,
+      "totalTokens": 308608
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 18854,
+      "tokens": {
+        "input": 18173,
+        "output": 3518,
+        "cacheRead": 71744,
+        "cacheWrite": 0,
+        "total": 93435
+      },
+      "costUsd": 0.0009045918,
+      "turns": 6
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 11901,
+      "tokens": {
+        "input": 5306,
+        "output": 1447,
+        "cacheRead": 75072,
+        "cacheWrite": 0,
+        "total": 81825
+      },
+      "costUsd": 0.0005178893999999998,
+      "turns": 6
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "passed": false,
+      "verifierOutput": "Correct, but over budget: 10 turns against a budget of 6. Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 20178,
+      "tokens": {
+        "input": 4284,
+        "output": 2601,
+        "cacheRead": 148480,
+        "cacheWrite": 0,
+        "total": 155365
+      },
+      "costUsd": 0.000877443,
+      "turns": 10
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 99359,
+      "tokens": {
+        "input": 48439,
+        "output": 443,
+        "cacheRead": 12800,
+        "cacheWrite": 0,
+        "total": 61682
+      },
+      "costUsd": 0.00812735,
+      "turns": 5
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 9848,
+      "tokens": {
+        "input": 12550,
+        "output": 386,
+        "cacheRead": 35968,
+        "cacheWrite": 0,
+        "total": 48904
+      },
+      "costUsd": 0.0038739000000000004,
+      "turns": 4
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 12255,
+      "tokens": {
+        "input": 9213,
+        "output": 979,
+        "cacheRead": 66048,
+        "cacheWrite": 0,
+        "total": 76240
+      },
+      "costUsd": 0.00517385,
+      "turns": 6
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "passed": false,
+      "verifierOutput": "Correct, but over budget: 13 turns against a budget of 6. Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 66923,
+      "tokens": {
+        "input": 30117,
+        "output": 3872,
+        "cacheRead": 176640,
+        "cacheWrite": 0,
+        "total": 210629
+      },
+      "costUsd": 0.006509000000000001,
+      "turns": 13
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "passed": false,
+      "verifierOutput": "Correct, but over budget: 7 turns against a budget of 6. Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 17125,
+      "tokens": {
+        "input": 3380,
+        "output": 1756,
+        "cacheRead": 90624,
+        "cacheWrite": 0,
+        "total": 95760
+      },
+      "costUsd": 0.002709024,
+      "turns": 7
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 90518,
+      "tokens": {
+        "input": 41686,
+        "output": 1993,
+        "cacheRead": 42752,
+        "cacheWrite": 0,
+        "total": 86431
+      },
+      "costUsd": 0.003626992,
+      "turns": 6
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 23485,
+      "tokens": {
+        "input": 10,
+        "output": 1191,
+        "cacheRead": 79351,
+        "cacheWrite": 21287,
+        "total": 101839
+      },
+      "costUsd": 0.0810177,
+      "turns": 5
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 13363,
+      "tokens": {
+        "input": 8,
+        "output": 643,
+        "cacheRead": 59677,
+        "cacheWrite": 18866,
+        "total": 79194
+      },
+      "costUsd": 0.0655464,
+      "turns": 4
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 32844,
+      "tokens": {
+        "input": 12,
+        "output": 2559,
+        "cacheRead": 103615,
+        "cacheWrite": 21389,
+        "total": 127575
+      },
+      "costUsd": 0.0998095,
+      "turns": 6
+    }
+  ]
+}

@@ -304,6 +304,13 @@ export async function runTaskForStrategy(
     verifierOutput = "No verifier configured; using process exit code.";
   }
 
+  // Reaching a passing state is necessary but not sufficient. A model that
+  // needs many attempts costs more and takes longer for the same result.
+  if (passed && task.maxTurns !== undefined && run.turns > task.maxTurns) {
+    passed = false;
+    verifierOutput = `Correct, but over budget: ${run.turns} turns against a budget of ${task.maxTurns}. ${verifierOutput}`;
+  }
+
   return {
     taskId: task.id,
     strategy,

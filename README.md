@@ -77,9 +77,20 @@ barrel export and a string-keyed registry, and a runbook under hard
 sentence-length and voice limits. Each verifier was checked against both the
 starting state and a correct solution.
 
-Measured over four models, the writing task separated them: `ling-3.0-flash`
-wrote no file and `glm-5.3-flash` produced a compound instruction, while
-`deepseek-v4-flash-0731` and `claude-sonnet-5` passed all three.
+`--ceiling` adds three more, scored against tests the model never sees: the
+visible suite is partial and a hidden suite checks the rest of the stated
+specification, so a near-miss such as a truthiness merge or a strict-less-than
+comparison fails.
+
+Those tasks also carry a turn budget. A deterministic test suite is a feedback
+loop, so correctness alone separates almost nothing: every model reached a
+passing state on every code task. What differs is how many attempts it took,
+and each attempt costs money and time. Exceeding the budget is a failure.
+
+Measured over four models, code pass rates ran from 33% to 100% and the writing
+task separated them again. `deepseek-v4-flash-0731` is the clearest case: it
+solved every code task correctly but needed 13, 7 and 6 turns, so its posterior
+fell below its catalog prior.
 
 Five tasks, three code and two non-code, each in an isolated workspace with an
 independent verifier. Last recorded run (`eval/results/`, 2026-09-20):
