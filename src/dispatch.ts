@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { classify, WRITING_STYLE_DIRECTIVE } from "./classifier.ts";
+import { collectContext } from "./context.ts";
 import { selectModel, resolveWorkKind, ROLE_THINKING } from "./selector.ts";
 import { loadCatalog } from "./catalog.ts";
 import { loadEvidence } from "./evidence.ts";
@@ -88,15 +89,22 @@ export function writeBrief(taskId: string, objective: string, acceptance: string
 }
 
 /** Classify the task and pick model+thinking. Falls back to static policy. */
-export async function routeTask(objective: string, cwd: string, explicitRole?: string) {
+export async function routeTask(
+  objective: string,
+  cwd: string,
+  explicitRole?: string,
+  acceptanceCriteria: string[] = [],
+) {
+  // A worker brief carries its own acceptance criteria; both go to the classifier.
+  const collected = await collectContext(objective, cwd, {});
   const envelope: TaskEnvelope = {
     taskId: `r-${randomUUID().slice(0, 8)}`,
     role: (explicitRole as TaskEnvelope["role"]) ?? "implementer",
     objective,
-    acceptanceCriteria: [],
-    relevantContext: "",
-    facts: { hasImages: false, estimatedContextTokens: Math.ceil(objective.length / 4), requiredTools: [], attempt: 0, priorFailureKinds: [] },
-    policyRef: "policy@v2",
+    acceptanceCriteria,
+    relevantContext: collected.relevantContext,
+    facts: collected.facts,
+    policyRef: "policy@v3",
   };
   const c = await classify(envelope);
   const category = String((c.answers as any).category?.value ?? "");
@@ -122,7 +130,7 @@ export async function dispatch(taskId: string, opts: DispatchOptions): Promise<D
     }
   }
 
-  const { recommendation, thinking, classification, workKind } = await routeTask(task.objective, targetCwd, opts.role);
+  const { recommendation, thinking, classification, workKind } = await routeTask(task.objective, targetCwd, opts.role, opts.acceptanceCriteria ?? []);
   const briefPath = writeBrief(taskId, task.objective, opts.acceptanceCriteria ?? [], targetCwd);
   const nonce = randomUUID().slice(0, 8);
   const summaryPath = join(TASK_DIR_ROOT, taskId, "summary.json");

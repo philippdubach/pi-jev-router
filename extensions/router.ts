@@ -24,6 +24,7 @@ import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
 import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Recommendation, type WorkKind } from "../src/selector.ts";
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
+import { collectContext } from "../src/context.ts";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
@@ -92,20 +93,23 @@ export default function (pi: ExtensionAPI) {
     if (event.streamingBehavior) return;
 
     const taskId = `t-${Date.now().toString(36)}`;
+    // The classifier can only judge what it receives. Gather bounded session and
+    // repository signals instead of sending the bare prompt.
+    const collected = await collectContext(event.prompt, ctx.cwd, {
+      sessionManager: ctx.sessionManager,
+      activeTools: pi.getActiveTools(),
+      contextTokens: ctx.getContextUsage()?.tokens,
+      hasImages: (event.images?.length ?? 0) > 0,
+      contextFiles: event.systemPromptOptions?.contextFiles?.map((f: any) => f.path),
+    });
     const envelope: TaskEnvelope = {
       taskId,
       role: "direct",
       objective: event.prompt,
       acceptanceCriteria: [],
-      relevantContext: "",
-      facts: {
-        hasImages: (event.images?.length ?? 0) > 0,
-        estimatedContextTokens: Math.ceil(event.prompt.length / 4),
-        requiredTools: [],
-        attempt: 0,
-        priorFailureKinds: [],
-      },
-      policyRef: "policy@v2",
+      relevantContext: collected.relevantContext,
+      facts: collected.facts,
+      policyRef: "policy@v3",
     };
 
     const classification = await classify(envelope, ctx.signal);
@@ -121,7 +125,7 @@ export default function (pi: ExtensionAPI) {
     if (pinnedModelId) recommendation.modelId = pinnedModelId;
     if (manualPin) {
       lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active" };
-      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin" });
+      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, workKind });
       applyMode(ctx);
       return;
     }
@@ -154,6 +158,9 @@ export default function (pi: ExtensionAPI) {
     record({
       taskId, mode, recommendation, classification,
       note: note ?? (switched ? "switched" : "shadow"),
+      objective: event.prompt,
+      contextChars: collected.relevantContext.length,
+      workKind,
       candidateCount: recommendation.candidateCount,
       frontierSize: recommendation.frontier?.length,
       q: recommendation.q,
