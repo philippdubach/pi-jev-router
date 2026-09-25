@@ -1,0 +1,887 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 11,
+      "passedTasks": 11,
+      "passRate": 100,
+      "totalCostUsd": 0.0094385214,
+      "costPerSuccessUsd": 0.0008580474,
+      "avgLatencyMs": 22886.090909090908,
+      "totalTokens": 1023723
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 11,
+      "passedTasks": 10,
+      "passRate": 90.9090909090909,
+      "totalCostUsd": 0.0497507,
+      "costPerSuccessUsd": 0.00497507,
+      "avgLatencyMs": 17082.81818181818,
+      "totalTokens": 560721
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 11,
+      "passedTasks": 7,
+      "passRate": 63.63636363636363,
+      "totalCostUsd": 0.020787408,
+      "costPerSuccessUsd": 0.0029696297142857144,
+      "avgLatencyMs": 110716.81818181818,
+      "totalTokens": 742961
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 11,
+      "passedTasks": 11,
+      "passRate": 100,
+      "totalCostUsd": 0.9335689,
+      "costPerSuccessUsd": 0.0848699,
+      "avgLatencyMs": 26940.363636363636,
+      "totalTokens": 861270
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_lru_ttl",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running LRUCache tests...\nALL LRU TESTS PASSED\n",
+      "latencyMs": 25508,
+      "tokens": {
+        "input": 35229,
+        "output": 4103,
+        "cacheRead": 81984,
+        "cacheWrite": 0,
+        "total": 121316
+      },
+      "costUsd": 0.0013426308,
+      "turns": 7
+    },
+    {
+      "taskId": "code_semver_sort",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running SemVer tests...\nALL SEMVER TESTS PASSED\n",
+      "latencyMs": 9719,
+      "tokens": {
+        "input": 12973,
+        "output": 1484,
+        "cacheRead": 42048,
+        "cacheWrite": 0,
+        "total": 56505
+      },
+      "costUsd": 0.0005425266,
+      "turns": 4
+    },
+    {
+      "taskId": "code_retry_queue",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running TaskQueue tests...\nALL QUEUE TESTS PASSED\n",
+      "latencyMs": 9622,
+      "tokens": {
+        "input": 5355,
+        "output": 1557,
+        "cacheRead": 49792,
+        "cacheWrite": 0,
+        "total": 56704
+      },
+      "costUsd": 0.00041967240000000003,
+      "turns": 4
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 36338,
+      "tokens": {
+        "input": 9882,
+        "output": 8847,
+        "cacheRead": 57536,
+        "cacheWrite": 0,
+        "total": 76265
+      },
+      "costUsd": 0.0010065342,
+      "turns": 4
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (36 sentences checked, clean of AI tropes).",
+      "latencyMs": 11695,
+      "tokens": {
+        "input": 13608,
+        "output": 1924,
+        "cacheRead": 27328,
+        "cacheWrite": 0,
+        "total": 42860
+      },
+      "costUsd": 0.0005217576000000001,
+      "turns": 3
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 13995,
+      "tokens": {
+        "input": 6166,
+        "output": 1716,
+        "cacheRead": 64896,
+        "cacheWrite": 0,
+        "total": 72778
+      },
+      "costUsd": 0.0005101572,
+      "turns": 5
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 26570,
+      "tokens": {
+        "input": 19389,
+        "output": 2831,
+        "cacheRead": 152448,
+        "cacheWrite": 0,
+        "total": 174668
+      },
+      "costUsd": 0.0012258036,
+      "turns": 10
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 17 sentences, all <= 20 words, 7 imperative steps.",
+      "latencyMs": 13792,
+      "tokens": {
+        "input": 5274,
+        "output": 3309,
+        "cacheRead": 38144,
+        "cacheWrite": 0,
+        "total": 46727
+      },
+      "costUsd": 0.00047942579999999996,
+      "turns": 3
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 64652,
+      "tokens": {
+        "input": 59777,
+        "output": 4439,
+        "cacheRead": 69888,
+        "cacheWrite": 0,
+        "total": 134104
+      },
+      "costUsd": 0.0018285036000000002,
+      "turns": 8
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 13065,
+      "tokens": {
+        "input": 2566,
+        "output": 1509,
+        "cacheRead": 77760,
+        "cacheWrite": 0,
+        "total": 81835
+      },
+      "costUsd": 0.00047554499999999996,
+      "turns": 6
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 26791,
+      "tokens": {
+        "input": 11858,
+        "output": 3655,
+        "cacheRead": 144448,
+        "cacheWrite": 0,
+        "total": 159961
+      },
+      "costUsd": 0.0010859646,
+      "turns": 10
+    },
+    {
+      "taskId": "code_lru_ttl",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running LRUCache tests...\nALL LRU TESTS PASSED\n",
+      "latencyMs": 9770,
+      "tokens": {
+        "input": 13442,
+        "output": 837,
+        "cacheRead": 37056,
+        "cacheWrite": 0,
+        "total": 51335
+      },
+      "costUsd": 0.0042876,
+      "turns": 4
+    },
+    {
+      "taskId": "code_semver_sort",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running SemVer tests...\nALL SEMVER TESTS PASSED\n",
+      "latencyMs": 14650,
+      "tokens": {
+        "input": 9028,
+        "output": 912,
+        "cacheRead": 41472,
+        "cacheWrite": 0,
+        "total": 51412
+      },
+      "costUsd": 0.0038838,
+      "turns": 4
+    },
+    {
+      "taskId": "code_retry_queue",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running TaskQueue tests...\nALL QUEUE TESTS PASSED\n",
+      "latencyMs": 22697,
+      "tokens": {
+        "input": 14587,
+        "output": 1885,
+        "cacheRead": 50048,
+        "cacheWrite": 0,
+        "total": 66520
+      },
+      "costUsd": 0.00563295,
+      "turns": 5
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 58744,
+      "tokens": {
+        "input": 12494,
+        "output": 5610,
+        "cacheRead": 16192,
+        "cacheWrite": 0,
+        "total": 34296
+      },
+      "costUsd": 0.005488699999999999,
+      "turns": 2
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (57 sentences checked, clean of AI tropes).",
+      "latencyMs": 16665,
+      "tokens": {
+        "input": 12850,
+        "output": 961,
+        "cacheRead": 11840,
+        "cacheWrite": 0,
+        "total": 25651
+      },
+      "costUsd": 0.003,
+      "turns": 2
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 6768,
+      "tokens": {
+        "input": 8760,
+        "output": 517,
+        "cacheRead": 41408,
+        "cacheWrite": 0,
+        "total": 50685
+      },
+      "costUsd": 0.0036429,
+      "turns": 4
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 10569,
+      "tokens": {
+        "input": 17785,
+        "output": 703,
+        "cacheRead": 47104,
+        "cacheWrite": 0,
+        "total": 65592
+      },
+      "costUsd": 0.00537445,
+      "turns": 5
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Strict STE failed:\n- 1 compound instruction(s). First: \"You know the consumer name and the queue name.\"",
+      "latencyMs": 8430,
+      "tokens": {
+        "input": 14907,
+        "output": 441,
+        "cacheRead": 9216,
+        "cacheWrite": 0,
+        "total": 24564
+      },
+      "costUsd": 0.00291735,
+      "turns": 2
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 15154,
+      "tokens": {
+        "input": 28847,
+        "output": 1029,
+        "cacheRead": 46080,
+        "cacheWrite": 0,
+        "total": 75956
+      },
+      "costUsd": 0.007145549999999999,
+      "turns": 6
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 11114,
+      "tokens": {
+        "input": 8037,
+        "output": 601,
+        "cacheRead": 40128,
+        "cacheWrite": 0,
+        "total": 48766
+      },
+      "costUsd": 0.00351245,
+      "turns": 4
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 13350,
+      "tokens": {
+        "input": 9787,
+        "output": 1309,
+        "cacheRead": 54848,
+        "cacheWrite": 0,
+        "total": 65944
+      },
+      "costUsd": 0.00486495,
+      "turns": 5
+    },
+    {
+      "taskId": "code_lru_ttl",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Command failed (exit 1):\nRunning LRUCache tests...\n\nTest failed: Error: Assertion failed: size should be 3\n    at assert (file:///private/var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/code_lru_ttl/test.ts:5:25)\n    at runTests (file:///private/var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/code_lru_ttl/test.ts:21:3)\n    at file:///private/var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/",
+      "latencyMs": 179999,
+      "tokens": {
+        "input": 29081,
+        "output": 2202,
+        "cacheRead": 40704,
+        "cacheWrite": 0,
+        "total": 71987
+      },
+      "costUsd": 0.0022283340000000002,
+      "turns": 5,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "code_semver_sort",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running SemVer tests...\nALL SEMVER TESTS PASSED\n",
+      "latencyMs": 91851,
+      "tokens": {
+        "input": 27990,
+        "output": 2699,
+        "cacheRead": 28672,
+        "cacheWrite": 0,
+        "total": 59361
+      },
+      "costUsd": 0.0021621319999999998,
+      "turns": 4
+    },
+    {
+      "taskId": "code_retry_queue",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Command failed (exit 1):\n\nnode:internal/modules/esm/resolve:241\n    throw new ERR_MODULE_NOT_FOUND(\n          ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find module '/private/var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/code_retry_queue/queue.ts' imported from /private/var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/code_retry_queue/test.ts\n    at finalizeResolution (node:internal/",
+      "latencyMs": 179999,
+      "tokens": {
+        "input": 18316,
+        "output": 3932,
+        "cacheRead": 108288,
+        "cacheWrite": 0,
+        "total": 130536
+      },
+      "costUsd": 0.0035403279999999997,
+      "turns": 8,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "high",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Output file not found. Checked: /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/plan_distributed_ratelimiter/plan.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/plan_distributed_ratelimiter/architecture.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/plan_distributed_ratelimiter/rate-limiter.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_deepseek_deepseek-v4-flash-0731/plan_distributed_ratelimiter/output.md",
+      "latencyMs": 180000,
+      "tokens": {
+        "input": 25339,
+        "output": 306,
+        "cacheRead": 12544,
+        "cacheWrite": 0,
+        "total": 38189
+      },
+      "costUsd": 0.001058794,
+      "turns": 3,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (30 sentences checked, clean of AI tropes).",
+      "latencyMs": 11940,
+      "tokens": {
+        "input": 12666,
+        "output": 663,
+        "cacheRead": 25600,
+        "cacheWrite": 0,
+        "total": 38929
+      },
+      "costUsd": 0.00100174,
+      "turns": 3
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 51506,
+      "tokens": {
+        "input": 35541,
+        "output": 3216,
+        "cacheRead": 91136,
+        "cacheWrite": 0,
+        "total": 129893
+      },
+      "costUsd": 0.0035535259999999996,
+      "turns": 7
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 74915,
+      "tokens": {
+        "input": 16583,
+        "output": 1362,
+        "cacheRead": 51456,
+        "cacheWrite": 0,
+        "total": 69401
+      },
+      "costUsd": 0.0017566260000000003,
+      "turns": 5
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 28 sentences, all <= 20 words, 10 imperative steps.",
+      "latencyMs": 24552,
+      "tokens": {
+        "input": 12474,
+        "output": 538,
+        "cacheRead": 12800,
+        "cacheWrite": 0,
+        "total": 25812
+      },
+      "costUsd": 0.00075118,
+      "turns": 2
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 179998,
+      "tokens": {
+        "input": 13655,
+        "output": 2111,
+        "cacheRead": 39936,
+        "cacheWrite": 0,
+        "total": 55702
+      },
+      "costUsd": 0.0017241460000000002,
+      "turns": 4,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 63120,
+      "tokens": {
+        "input": 4173,
+        "output": 2055,
+        "cacheRead": 91136,
+        "cacheWrite": 0,
+        "total": 97364
+      },
+      "costUsd": 0.002240966,
+      "turns": 7
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "medium",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Visible tests failed: Assertion failed: priority defaults to normal, got undefined at assert (file:///private/var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mugn1mvl/model_dee",
+      "latencyMs": 180005,
+      "tokens": {
+        "input": 14798,
+        "output": 493,
+        "cacheRead": 10496,
+        "cacheWrite": 0,
+        "total": 25787
+      },
+      "costUsd": 0.000769636,
+      "turns": 2,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "code_lru_ttl",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running LRUCache tests...\nALL LRU TESTS PASSED\n",
+      "latencyMs": 17109,
+      "tokens": {
+        "input": 8,
+        "output": 1235,
+        "cacheRead": 60818,
+        "cacheWrite": 19763,
+        "total": 81824
+      },
+      "costUsd": 0.0739371,
+      "turns": 4
+    },
+    {
+      "taskId": "code_semver_sort",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running SemVer tests...\nALL SEMVER TESTS PASSED\n",
+      "latencyMs": 15085,
+      "tokens": {
+        "input": 8,
+        "output": 1094,
+        "cacheRead": 61036,
+        "cacheWrite": 19857,
+        "total": 81995
+      },
+      "costUsd": 0.0728057,
+      "turns": 4
+    },
+    {
+      "taskId": "code_retry_queue",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: Running TaskQueue tests...\nALL QUEUE TESTS PASSED\n",
+      "latencyMs": 16087,
+      "tokens": {
+        "input": 8,
+        "output": 1180,
+        "cacheRead": 60938,
+        "cacheWrite": 19870,
+        "total": 81996
+      },
+      "costUsd": 0.0736786,
+      "turns": 4
+    },
+    {
+      "taskId": "plan_distributed_ratelimiter",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Planning architecture verification passed (includes atomicity, outage fallback, and rollback triggers).",
+      "latencyMs": 125408,
+      "tokens": {
+        "input": 4,
+        "output": 11316,
+        "cacheRead": 18999,
+        "cacheWrite": 29794,
+        "total": 60113
+      },
+      "costUsd": 0.1914528,
+      "turns": 2
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (45 sentences checked, clean of AI tropes).",
+      "latencyMs": 10998,
+      "tokens": {
+        "input": 4,
+        "output": 816,
+        "cacheRead": 19227,
+        "cacheWrite": 20047,
+        "total": 40094
+      },
+      "costUsd": 0.0621309,
+      "turns": 2
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 14815,
+      "tokens": {
+        "input": 10,
+        "output": 991,
+        "cacheRead": 80560,
+        "cacheWrite": 19931,
+        "total": 101492
+      },
+      "costUsd": 0.0758695,
+      "turns": 5
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 22686,
+      "tokens": {
+        "input": 8,
+        "output": 1763,
+        "cacheRead": 62331,
+        "cacheWrite": 21095,
+        "total": 85197
+      },
+      "costUsd": 0.0828497,
+      "turns": 4
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 32 sentences, all <= 20 words, 12 imperative steps.",
+      "latencyMs": 9634,
+      "tokens": {
+        "input": 4,
+        "output": 649,
+        "cacheRead": 20358,
+        "cacheWrite": 18623,
+        "total": 39634
+      },
+      "costUsd": 0.0571271,
+      "turns": 2
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 16603,
+      "tokens": {
+        "input": 8,
+        "output": 1081,
+        "cacheRead": 60773,
+        "cacheWrite": 19632,
+        "total": 81494
+      },
+      "costUsd": 0.0720606,
+      "turns": 4
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 11804,
+      "tokens": {
+        "input": 8,
+        "output": 573,
+        "cacheRead": 59608,
+        "cacheWrite": 18798,
+        "total": 78987
+      },
+      "costUsd": 0.0646626,
+      "turns": 4
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 36115,
+      "tokens": {
+        "input": 12,
+        "output": 3181,
+        "cacheRead": 103464,
+        "cacheWrite": 21787,
+        "total": 128444
+      },
+      "costUsd": 0.1069943,
+      "turns": 6
+    }
+  ]
+}

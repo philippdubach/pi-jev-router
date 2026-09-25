@@ -70,8 +70,19 @@ export function knee(frontier: Scored[]): Scored | undefined {
   const len = Math.hypot(dx, dy);
   if (len < EPS) return undefined;
 
-  const dist = x.map((v, i) => Math.abs(dy * (v - x[lo]) - dx * (y[i] - y[lo])) / len);
+  // Signed distance, positive above the chord. A point above the chord has
+  // gained more quality than its cost position on the line predicts: a
+  // good-value bend. A point below has paid for quality it did not receive.
+  //
+  // The unsigned version chose the farthest point in either direction. On a
+  // concave frontier, where each extra dollar buys less, every interior point
+  // sits below the chord, and the unsigned rule picked the worst value on the
+  // curve: a $0.33 model over a $0.0009 model measured at 19 of 21.
+  const dist = x.map((v, i) => (dx * (y[i] - y[lo]) - dy * (v - x[lo])) / len);
   const maxDist = Math.max(...dist);
+  // Nothing above the chord means no bend to exploit. Return undefined so the
+  // caller falls back to the weighted value function, which can pick an
+  // endpoint.
   if (maxDist <= EPS) return undefined;
 
   const ties = frontier.filter((_, i) => maxDist - dist[i] <= EPS);

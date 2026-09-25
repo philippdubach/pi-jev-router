@@ -35,8 +35,26 @@ const one = [s("only", 0.42, 3, 7)];
 check("one dominator collapses the set", nondominated([...one, s("worse", 0.1, 9, 9)]).length === 1);
 
 // --- knee ---
+// `mid` in the mixed fixture sits BELOW the chord: q=0.60 for $0.10 is a
+// worse deal than the straight line from cheap-weak to strong-costly. That
+// is not a bend worth exploiting, so it must not be the knee. The unsigned
+// rule picked it anyway, and on a live frontier the same fault chose a
+// $0.33 model over a $0.0009 model measured at 19 of 21.
 const frontier = nondominated(mixed);
-check("knee is the best-balanced point", knee(frontier)!.id === "mid");
+check("a point below the chord is not a knee", knee(frontier) === undefined);
+
+// A true bend: most of the quality arrives early, then cost climbs for little.
+const bent = [s("cheap", 0.30, 0.01, 1), s("value", 0.85, 0.05, 1), s("costly", 0.95, 1.00, 1)];
+check("knee is the point above the chord", knee(bent)!.id === "value");
+
+// Two points above the chord: the farther one wins.
+const twoAbove = [s("a", 0.30, 0.01, 1), s("b", 0.70, 0.02, 1), s("c", 0.90, 0.05, 1), s("d", 0.95, 1.00, 1)];
+check("the farthest point above the chord wins", knee(twoAbove)!.id === "c");
+
+// Concave frontier: every interior point below the chord, no knee at all,
+// so the caller falls back to the weighted value function.
+const concave = [s("a", 0.88, 0.001, 1), s("b", 0.93, 0.05, 1), s("c", 0.95, 0.09, 1), s("d", 0.954, 0.33, 1), s("e", 1.0, 0.66, 1)];
+check("concave frontier has no knee", knee(concave) === undefined);
 check("knee ignores a two-point frontier", knee([s("a", 0.2, 0.01, 1), s("b", 0.9, 1, 1)]) === undefined);
 check("knee of empty frontier is undefined", knee([]) === undefined);
 const collinear = [s("a", 0.5, 0.01, 1), s("b", 0.6, 0.1, 1), s("c", 0.7, 1.0, 1)];
