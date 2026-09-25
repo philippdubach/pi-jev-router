@@ -25,6 +25,7 @@ import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Reco
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
+import { estimateTargetTokens, inheritWorkKind, isSameModel } from "../src/continuity.ts";
 import {
   blockRoute,
   loadState,
@@ -55,6 +56,8 @@ export default function (pi: ExtensionAPI) {
   let subscriptionEnabled: string[] = [];
   let subscriptionState: SubscriptionState = loadState();
   let lastRoutedVia: string | undefined;
+  // Last work kind that was not `other`, for continuation prompts.
+  let lastWorkKind: WorkKind | undefined;
 
   let lastDecision:
     | { ts: string; recommendation: Recommendation; classification?: ClassificationResult; note?: string; switched?: boolean }
@@ -145,7 +148,11 @@ export default function (pi: ExtensionAPI) {
     const classification = await classify(envelope, ctx.signal);
     const available = !classification.classifierUnavailable;
     const category = String((classification.answers as any)?.category?.value ?? "");
-    const workKind = resolveWorkKind(undefined, category, event.prompt);
+    // A continuation such as "continue" names no task. Carry the previous
+    // classified work kind forward rather than routing it as `other`.
+    const inherit = inheritWorkKind(resolveWorkKind(undefined, category, event.prompt), category, event.prompt, lastWorkKind);
+    const workKind = inherit.workKind;
+    if (workKind !== "other") lastWorkKind = workKind;
     await ensureCatalog();
     // The pick is computed from the live feasible frontier for this task.
     const recommendation = selectModel(envelope, classification, catalogCache, evidenceCache, workKind);
@@ -155,7 +162,7 @@ export default function (pi: ExtensionAPI) {
     if (pinnedModelId) recommendation.modelId = pinnedModelId;
     if (manualPin) {
       lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active" };
-      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, workKind });
+      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, workKind, inheritedWorkKind: inherit.inherited });
       applyMode(ctx);
       return;
     }
@@ -191,6 +198,7 @@ export default function (pi: ExtensionAPI) {
       objective: event.prompt,
       contextChars: collected.relevantContext.length,
       workKind,
+      inheritedWorkKind: inherit.inherited,
       candidateCount: recommendation.candidateCount,
       frontierSize: recommendation.frontier?.length,
       q: recommendation.q,
@@ -225,15 +233,20 @@ export default function (pi: ExtensionAPI) {
       ctx.ui.notify(`jev-router: ${openrouterModelId} is unavailable in Pi's model catalog — staying on ${current?.id ?? "current model"}`, "warning");
       return undefined;
     }
-    // Context-downgrade guard: current estimated context must fit target window.
-    if (current && candidate.contextWindow && current.usage?.totalTokens) {
-      if (current.usage.totalTokens > candidate.contextWindow * 0.9) {
-        ctx.ui.notify(
-          `jev-router: ${candidate.id} context ${candidate.contextWindow} too small for ~${current.usage.totalTokens} tokens — staying on ${current.id}`,
-          "warning",
-        );
-        return false;
-      }
+    // Context-downgrade guard. Read the live session size from pi, not from the
+    // model object, which carries no usage. Tokens are counted in the current
+    // model's tokenizer, so convert before comparing against the target window.
+    const liveTokens: number = ctx.getContextUsage?.()?.tokens ?? current?.usage?.totalTokens ?? 0;
+    const fits = (m: any): boolean => {
+      if (!m?.contextWindow || !liveTokens) return true;
+      return estimateTargetTokens(liveTokens, current ?? {}, m) <= m.contextWindow * 0.9;
+    };
+    if (!fits(candidate)) {
+      ctx.ui.notify(
+        `jev-router: ${candidate.id} context ${candidate.contextWindow} too small for ~${estimateTargetTokens(liveTokens, current ?? {}, candidate)} tokens in its tokenizer \u2014 staying on ${current?.id}`,
+        "warning",
+      );
+      return false;
     }
     // Thinking level: role-specific, else a safe default.
     const level = roleThinking ?? "medium";
@@ -256,11 +269,19 @@ export default function (pi: ExtensionAPI) {
         const subModel = (ctx.modelRegistry?.getAvailable?.() ?? []).find(
           (m: any) => m.provider === resolved.route!.provider && m.id === resolved.route!.modelId,
         );
-        if (subModel) {
+        if (subModel && fits(subModel)) {
           target = subModel;
           routedVia = resolved.route.provider;
         }
       }
+    }
+
+    // Already on the target: set the thinking level and skip the switch, which
+    // otherwise writes a model_change entry on every task boundary.
+    if (isSameModel(current, target)) {
+      pi.setThinkingLevel(level as any);
+      lastRoutedVia = routedVia;
+      return true;
     }
 
     suppressModelSelect = true;

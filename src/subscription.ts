@@ -16,8 +16,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { ROUTER_DIR } from "./paths.ts";
 
-export const STATE_DIR = join(homedir(), ".pi", "agent", "jev-router");
+export const STATE_DIR = ROUTER_DIR;
 export const STATE_FILE = join(STATE_DIR, "subscription-state.json");
 
 /** A refusal is sticky: an unsupported model never becomes supported. */

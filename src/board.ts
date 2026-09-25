@@ -11,8 +11,9 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
+import { ROUTER_DIR } from "./paths.ts";
 
-export const BOARD_DIR = join(homedir(), ".pi", "agent", "jev-router");
+export const BOARD_DIR = ROUTER_DIR;
 const DB_FILE = join(BOARD_DIR, "board.db");
 
 let db: DatabaseSync | null = null;

@@ -5,8 +5,9 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { ROUTER_DIR } from "./paths.ts";
 
-export const LEDGER_DIR = join(homedir(), ".pi", "agent", "jev-router");
+export const LEDGER_DIR = ROUTER_DIR;
 export const LEDGER_FILE = join(LEDGER_DIR, "decisions.jsonl");
 
 export interface DecisionRecord {
@@ -23,6 +24,8 @@ export interface DecisionRecord {
   objective?: string;
   contextChars?: number;
   workKind?: string;
+  /** True when a continuation prompt inherited the previous work kind. */
+  inheritedWorkKind?: boolean;
   // Frontier observability, copied from the Recommendation for easy filtering.
   candidateCount?: number;
   frontierSize?: number;

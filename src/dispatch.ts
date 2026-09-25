@@ -25,10 +25,11 @@ import type { TaskEnvelope, ClassificationResult } from "./task-envelope.ts";
 import { createWorktree, cleanupWorktree, mergeWorktree, type WorktreeSession } from "./worktree.ts";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import { ROUTER_DIR } from "./paths.ts";
 
 const execAsync = promisify(exec);
 
-export const TASK_DIR_ROOT = join(homedir(), ".pi", "agent", "jev-router", "tasks");
+export const TASK_DIR_ROOT = join(ROUTER_DIR, "tasks");
 
 export interface DispatchOptions {
   cwd: string;
