@@ -26,6 +26,26 @@ export const EVIDENCE_PSEUDO_COUNT = 2;
  * is how an earlier turn budget placed at the median went wrong.
  */
 export const QUALITY_FLOOR = 0.65;
+
+/**
+ * Confidence above which a `clarify` brief answer stops routing. Below it the
+ * classifier is guessing about readiness and the pick proceeds as normal.
+ */
+export const BRIEF_ABSTAIN_CONFIDENCE = 0.7;
+
+/**
+ * Map complexity in [0, 3] to a multiplier on cost aversion. Complexity 0
+ * (a fully specified mechanical step) is 1.5x as cost averse as the profile
+ * default; complexity 3 (ambiguous, cross-system) is half as cost averse.
+ * Linear between, clamped outside.
+ */
+export function complexityScale(complexity: number): number {
+  const c = Math.min(3, Math.max(0, Number.isFinite(complexity) ? complexity : 1));
+  return 1.5 - c / 3;
+}
+
+/** Decompose probability above which the router suggests dispatching. */
+export const DECOMPOSE_HINT_THRESHOLD = 0.7;
 export const CONTEXT_HEADROOM = 1.3;
 const DEFAULT_TURNS = 4;
 const DEFAULT_OUTPUT_TOKENS = 1500;
@@ -61,6 +81,7 @@ export const ROLE_THINKING: Record<WorkKind, string> = {
 };
 
 export type RecommendationReason =
+  | "brief_unclear"
   | "frontier_knee"
   | "frontier_tangency"
   | "relaxed_proven_gate"
@@ -81,6 +102,8 @@ export interface Recommendation {
   complexity?: number;
   risk?: number;
   latencySignal?: boolean;
+  /** Set when the pick was withheld because the brief was not ready. */
+  briefConfidence?: number;
 }
 
 /** Map prompt text + Jev category -> work kind. Explicit role overrides this. */
@@ -272,6 +295,20 @@ export function selectModel(
   // A task that was not classified must not clear the proven gate on a guess.
   const risk = classification.classifierUnavailable ? 3 : rawRisk;
 
+  // A brief the classifier is confident is not ready to act on should not be
+  // routed. Switching models does not make an ill-defined task well-defined;
+  // it only changes which model asks the clarifying question. Leave the
+  // current model in place and say so.
+  const brief = answers.brief;
+  if (
+    !classification.classifierUnavailable &&
+    brief?.value === "clarify" &&
+    typeof brief.confidence === "number" &&
+    brief.confidence >= BRIEF_ABSTAIN_CONFIDENCE
+  ) {
+    return { modelId: "", reason: "brief_unclear", complexity, risk, briefConfidence: brief.confidence };
+  }
+
   if (catalog.length === 0) {
     return { modelId: FALLBACK_MODELS[kind], reason: "catalog_unavailable" };
   }
@@ -297,8 +334,12 @@ export function selectModel(
     // The knee leads. A frontier too small or too flat for a knee falls back to
     // the weighted value function. Both read the live frontier, so the pick
     // follows the catalog and the recorded evidence on every task.
+    // Complexity scales cost aversion. A hard task tolerates more spend; a
+    // trivial one should not pay for capability it will not use. The
+    // classifier's complexity score is otherwise computed and never read.
+    const lambda = w.lambda * complexityScale(complexity);
     const kneePick = knee(front);
-    const pick = kneePick ?? tangency(front, w.lambda, latPresent ? w.mu : 0)?.pick;
+    const pick = kneePick ?? tangency(front, lambda, latPresent ? w.mu : 0)?.pick;
     if (!pick) continue;
     const baseReason: RecommendationReason = kneePick ? "frontier_knee" : "frontier_tangency";
     return {
@@ -313,7 +354,7 @@ export function selectModel(
       tEst: pick.t,
       candidateCount: candidates.length,
       frontier: front,
-      lambda: w.lambda,
+      lambda,
       mu: latPresent ? w.mu : 0,
       complexity,
       risk,

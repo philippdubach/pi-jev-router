@@ -21,7 +21,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
-import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, type Recommendation, type WorkKind } from "../src/selector.ts";
+import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, DECOMPOSE_HINT_THRESHOLD, type Recommendation, type WorkKind } from "../src/selector.ts";
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
@@ -170,7 +170,20 @@ export default function (pi: ExtensionAPI) {
     let switched = false;
     let injectedSystemPrompt: string | undefined;
 
-    if (mode === "auto" && available) {
+    // The brief is not ready. Do not switch; the current model is as well
+    // placed to ask the clarifying question as any other.
+    const abstain = recommendation.reason === "brief_unclear";
+    if (abstain) {
+      note = `brief not ready (clarify at ${recommendation.briefConfidence?.toFixed(2)}) \u2014 not switching`;
+      recommendation.modelId = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "(current)";
+    }
+
+    // A task the classifier thinks is separable gets a hint, never an automatic
+    // dispatch. Delegating is a behaviour change the user has to see.
+    const decomposeP = Number((classification.answers as any)?.decompose?.value ?? 0);
+    const suggestDispatch = !abstain && workKind === "code" && decomposeP >= DECOMPOSE_HINT_THRESHOLD;
+
+    if (mode === "auto" && available && !abstain) {
       // Budget gate.
       const overBudget = sessionBudgetUsd !== undefined && sessionSpendUsd >= sessionBudgetUsd;
       if (overBudget) {
@@ -186,6 +199,13 @@ export default function (pi: ExtensionAPI) {
           injectedSystemPrompt = (event.systemPrompt ?? "") + WRITING_STYLE_DIRECTIVE;
         }
       }
+    }
+
+    if (suggestDispatch && mode === "auto") {
+      injectedSystemPrompt =
+        (injectedSystemPrompt ?? event.systemPrompt ?? "") +
+        `\n\nThe router judged this task separable (decompose ${decomposeP.toFixed(2)}). ` +
+        "If it has independent parts with clear acceptance criteria, consider dispatch_task for them.";
     }
 
     // Classifier spend is ours; approximate from its usage.

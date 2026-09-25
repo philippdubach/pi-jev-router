@@ -24,7 +24,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "PI_JEV_ROUTER_DIR=$(mktemp -d) sh -c \"node --experimental-strip-types tests/catalog.test.ts && node --experimental-strip-types tests/evidence.test.ts && node --experimental-strip-types tests/frontier.test.ts && node --experimental-strip-types tests/role-routing.test.ts && node --experimental-strip-types tests/selector.test.ts && node --experimental-strip-types tests/worktree.test.ts && node --experimental-strip-types tests/posterior.test.ts && node --experimental-strip-types tests/quality-floor.test.ts && node --experimental-strip-types tests/context.test.ts && node --experimental-strip-types tests/subscription.test.ts && node --experimental-strip-types tests/continuity.test.ts\"",
+    "test": "PI_JEV_ROUTER_DIR=$(mktemp -d) sh -c \"node --experimental-strip-types tests/catalog.test.ts && node --experimental-strip-types tests/evidence.test.ts && node --experimental-strip-types tests/frontier.test.ts && node --experimental-strip-types tests/role-routing.test.ts && node --experimental-strip-types tests/selector.test.ts && node --experimental-strip-types tests/worktree.test.ts && node --experimental-strip-types tests/posterior.test.ts && node --experimental-strip-types tests/quality-floor.test.ts && node --experimental-strip-types tests/context.test.ts && node --experimental-strip-types tests/subscription.test.ts && node --experimental-strip-types tests/classifier-signals.test.ts && node --experimental-strip-types tests/continuity.test.ts\"",
     "bench": "node --experimental-strip-types eval/index.ts"
   },
   "pi": {
