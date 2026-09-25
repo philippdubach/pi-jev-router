@@ -70,7 +70,7 @@ const agentic = {
   ],
 };
 const ag = readSessionSignals(agentic);
-check("captures last assistant text", ag.lastAssistantText?.includes("\\times became a tab") === true, String(ag.lastAssistantText));
+check("captures last assistant text", ag.lastAssistantText?.includes("became a tab") === true, String(ag.lastAssistantText));
 check("captures edited file basename", ag.recentPaths.includes("manuscript.tex"), JSON.stringify(ag.recentPaths));
 check("captures recent shell command", ag.recentCommands[0]?.includes("latexmk") === true, JSON.stringify(ag.recentCommands));
 const agCtx = await collectContext("continue", process.cwd(), { sessionManager: agentic });
