@@ -1,0 +1,122 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 1,
+      "passedTasks": 0,
+      "passRate": 0,
+      "totalCostUsd": 0.0001653792,
+      "costPerSuccessUsd": 0.0001653792,
+      "avgLatencyMs": 6163,
+      "totalTokens": 14084
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 1,
+      "passedTasks": 0,
+      "passRate": 0,
+      "totalCostUsd": 0.00240395,
+      "costPerSuccessUsd": 0.00240395,
+      "avgLatencyMs": 11802,
+      "totalTokens": 25158
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.0018252,
+      "costPerSuccessUsd": 0.0018252,
+      "avgLatencyMs": 42577,
+      "totalTokens": 40020
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.0561271,
+      "costPerSuccessUsd": 0.0561271,
+      "avgLatencyMs": 9234,
+      "totalTokens": 39474
+    }
+  ],
+  "results": [
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "No output file. Checked: /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mud2ww0q/model_inclusionai_ling-3.0-flash/write_strict_ste/runbook.md, /var/folders/v7/698tzr2n613_nwwy1ppy12m80000gn/T/pi-jev-benchmarks/bench-mud2ww0q/model_inclusionai_ling-3.0-flash/write_strict_ste/output.md",
+      "latencyMs": 6163,
+      "tokens": {
+        "input": 1150,
+        "output": 1478,
+        "cacheRead": 11456,
+        "cacheWrite": 0,
+        "total": 14084
+      },
+      "costUsd": 0.0001653792,
+      "turns": 1
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "Strict STE failed:\n- 1 step(s) do not start with an imperative verb. First: \"7. If the broker is unhealthy, stop here. Follow the broker incident r\"",
+      "latencyMs": 11802,
+      "tokens": {
+        "input": 8171,
+        "output": 731,
+        "cacheRead": 16256,
+        "cacheWrite": 0,
+        "total": 25158
+      },
+      "costUsd": 0.00240395,
+      "turns": 2
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 27 sentences, all <= 20 words, 9 imperative steps.",
+      "latencyMs": 42577,
+      "tokens": {
+        "input": 13022,
+        "output": 1398,
+        "cacheRead": 25600,
+        "cacheWrite": 0,
+        "total": 40020
+      },
+      "costUsd": 0.0018252,
+      "turns": 3
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 30 sentences, all <= 20 words, 12 imperative steps.",
+      "latencyMs": 9234,
+      "tokens": {
+        "input": 4,
+        "output": 569,
+        "cacheRead": 20358,
+        "cacheWrite": 18543,
+        "total": 39474
+      },
+      "costUsd": 0.0561271,
+      "turns": 2
+    }
+  ]
+}

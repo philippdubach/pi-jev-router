@@ -170,7 +170,12 @@ export function feasible(
   // Sentinel and serving-mode guards. A negative price is a router meta-model,
   // not a billable model. Batch is asynchronous, free is rate-limited, and
   // neither is an interactive endpoint.
-  if (m.promptPrice < 0 || m.completionPrice < 0) return false;
+  // A zero price is an unpublished price, not a free lunch. Every zero-priced
+  // entry in the live catalog was either a `:free` variant or an unbenchmarked
+  // stealth preview, and the optimistic prior put one of those on the frontier
+  // at $0.0000. Gate on price so a renamed variant cannot slip past the name
+  // check below.
+  if (m.promptPrice <= 0 || m.completionPrice <= 0) return false;
   if (/:(batch|free|extended)$/.test(m.id) || /\/(auto|auto-beta|free)$/.test(m.id)) return false;
   if (m.contextLength < env.facts.estimatedContextTokens * CONTEXT_HEADROOM) return false;
   if (!m.supportsTools) return false;

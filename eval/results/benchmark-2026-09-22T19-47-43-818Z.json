@@ -1,0 +1,122 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.001403745,
+      "costPerSuccessUsd": 0.001403745,
+      "avgLatencyMs": 34799,
+      "totalTokens": 178897
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.0030045,
+      "costPerSuccessUsd": 0.0030045,
+      "avgLatencyMs": 13129,
+      "totalTokens": 25681
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.001097008,
+      "costPerSuccessUsd": 0.001097008,
+      "avgLatencyMs": 16424,
+      "totalTokens": 26569
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.06291680000000001,
+      "costPerSuccessUsd": 0.06291680000000001,
+      "avgLatencyMs": 14837,
+      "totalTokens": 40626
+    }
+  ],
+  "results": [
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (40 sentences checked, clean of AI tropes).",
+      "latencyMs": 34799,
+      "tokens": {
+        "input": 17195,
+        "output": 6182,
+        "cacheRead": 155520,
+        "cacheWrite": 0,
+        "total": 178897
+      },
+      "costUsd": 0.001403745,
+      "turns": 10
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (61 sentences checked, clean of AI tropes).",
+      "latencyMs": 13129,
+      "tokens": {
+        "input": 12880,
+        "output": 961,
+        "cacheRead": 11840,
+        "cacheWrite": 0,
+        "total": 25681
+      },
+      "costUsd": 0.0030045,
+      "turns": 2
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (67 sentences checked, clean of AI tropes).",
+      "latencyMs": 16424,
+      "tokens": {
+        "input": 4414,
+        "output": 907,
+        "cacheRead": 21248,
+        "cacheWrite": 0,
+        "total": 26569
+      },
+      "costUsd": 0.001097008,
+      "turns": 2
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "STE & Humanizer verification passed (58 sentences checked, clean of AI tropes).",
+      "latencyMs": 14837,
+      "tokens": {
+        "input": 4,
+        "output": 1109,
+        "cacheRead": 20419,
+        "cacheWrite": 19094,
+        "total": 40626
+      },
+      "costUsd": 0.06291680000000001,
+      "turns": 2
+    }
+  ]
+}

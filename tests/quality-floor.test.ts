@@ -54,4 +54,13 @@ check(
 check("floor sits below a clean record and above a failed one",
   posteriorQuality(2, 2, 0.75) > QUALITY_FLOOR && posteriorQuality(0, 2, 0.75) < QUALITY_FLOOR);
 
+
+// Zero price is an unpublished price. A stealth preview at $0 must not reach
+// the frontier on the strength of an optimistic prior.
+const stealth = model("stealth/space-bunny-alpha", { promptPrice: 0, completionPrice: 0, aa: null as any });
+check("zero-priced model is infeasible", !feasible(stealth, env, 0, "code", {}, { priors: new Map() }));
+const halfZero = model("x/y", { promptPrice: 1e-7, completionPrice: 0 });
+check("zero completion price is infeasible", !feasible(halfZero, env, 0, "code", {}, { priors: new Map() }));
+check("a normally priced model is unaffected", feasible(model("z/w"), env, 0, "code", {}, { priors: new Map() }));
+
 process.exit(failed ? 1 : 0);

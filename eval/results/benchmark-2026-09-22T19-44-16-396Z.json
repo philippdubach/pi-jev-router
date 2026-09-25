@@ -1,0 +1,122 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.000617967,
+      "costPerSuccessUsd": 0.000617967,
+      "avgLatencyMs": 13549,
+      "totalTokens": 45047
+    },
+    {
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.0041981,
+      "costPerSuccessUsd": 0.0041981,
+      "avgLatencyMs": 12692,
+      "totalTokens": 50449
+    },
+    {
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.00124872,
+      "costPerSuccessUsd": 0.00124872,
+      "avgLatencyMs": 36119,
+      "totalTokens": 25968
+    },
+    {
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.058309200000000005,
+      "costPerSuccessUsd": 0.058309200000000005,
+      "avgLatencyMs": 11118,
+      "totalTokens": 39820
+    }
+  ],
+  "results": [
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 19 sentences, all <= 20 words, 6 imperative steps.",
+      "latencyMs": 13549,
+      "tokens": {
+        "input": 15673,
+        "output": 2814,
+        "cacheRead": 26560,
+        "cacheWrite": 0,
+        "total": 45047
+      },
+      "costUsd": 0.000617967,
+      "turns": 3
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 32 sentences, all <= 20 words, 12 imperative steps.",
+      "latencyMs": 12692,
+      "tokens": {
+        "input": 13008,
+        "output": 833,
+        "cacheRead": 36608,
+        "cacheWrite": 0,
+        "total": 50449
+      },
+      "costUsd": 0.0041981,
+      "turns": 4
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 49 sentences, all <= 20 words, 16 imperative steps.",
+      "latencyMs": 36119,
+      "tokens": {
+        "input": 18962,
+        "output": 606,
+        "cacheRead": 6400,
+        "cacheWrite": 0,
+        "total": 25968
+      },
+      "costUsd": 0.00124872,
+      "turns": 2
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Strict STE passed: 33 sentences, all <= 20 words, 12 imperative steps.",
+      "latencyMs": 11118,
+      "tokens": {
+        "input": 4,
+        "output": 744,
+        "cacheRead": 20356,
+        "cacheWrite": 18716,
+        "total": 39820
+      },
+      "costUsd": 0.058309200000000005,
+      "turns": 2
+    }
+  ]
+}
