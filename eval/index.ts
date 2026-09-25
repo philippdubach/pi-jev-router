@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { BENCHMARK_TASKS } from "./tasks.ts";
 import { HARD_TASKS } from "./hard-tasks.ts";
 import { CEILING_TASKS } from "./ceiling-tasks.ts";
+import { PLANNING_TASKS } from "./planning-tasks.ts";
 import { runTaskForStrategy, summarizeStrategy } from "./runner.ts";
 import type { RoutingStrategy, TaskRunResult, StrategySummary } from "./types.ts";
 
@@ -22,16 +23,18 @@ async function main() {
 
   // The original tasks were passed by every model, so they carry no quality
   // signal. `--hard` runs only the discriminating set; `--suite` runs both.
-  const pool = args.includes("--ceiling")
+  const pool = args.includes("--planning")
+    ? PLANNING_TASKS
+    : args.includes("--ceiling")
     ? CEILING_TASKS
     : args.includes("--hard")
       ? [...HARD_TASKS, ...CEILING_TASKS]
       : args.includes("--suite")
-        ? [...BENCHMARK_TASKS, ...HARD_TASKS, ...CEILING_TASKS]
+        ? [...BENCHMARK_TASKS, ...HARD_TASKS, ...CEILING_TASKS, ...PLANNING_TASKS]
         : BENCHMARK_TASKS;
   const taskFilter = args.find((a) => a.startsWith("--task="))?.split("=")[1];
   const tasksToRun = taskFilter
-    ? [...BENCHMARK_TASKS, ...HARD_TASKS, ...CEILING_TASKS].filter((t) => t.id === taskFilter)
+    ? [...BENCHMARK_TASKS, ...HARD_TASKS, ...CEILING_TASKS, ...PLANNING_TASKS].filter((t) => t.id === taskFilter)
     : pool;
 
   console.log("========================================================================");
