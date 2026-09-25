@@ -55,5 +55,28 @@ const empty = await collectContext("what does this repo do", process.cwd(), {});
 check("handles no-path prompt", empty.relevantContext.includes("names no specific file"));
 check("handles no session", empty.relevantContext.includes("first request in the session"));
 
-console.log("\n--- sample context block ---\n" + ctx.relevantContext);
+
+// --- assistant-side signals ---
+const agentic = {
+  getBranch: () => [
+    { message: { role: "user", content: "fix the escaping in the manuscript" } },
+    { message: { role: "assistant", content: [
+      { type: "text", text: "Checking caught one real corruption: `\\times` became a tab. Fixing it:" },
+      { type: "toolCall", name: "edit", arguments: { path: "/repo/paper/manuscript.tex", edits: [] } },
+      { type: "toolCall", name: "bash", arguments: { command: "cd /repo/paper && latexmk -pdf manuscript.tex" } },
+    ] } },
+    { message: { role: "toolResult", toolName: "edit", isError: false } },
+    { message: { role: "user", content: "continue" } },
+  ],
+};
+const ag = readSessionSignals(agentic);
+check("captures last assistant text", ag.lastAssistantText?.includes("\\times became a tab") === true, String(ag.lastAssistantText));
+check("captures edited file basename", ag.recentPaths.includes("manuscript.tex"), JSON.stringify(ag.recentPaths));
+check("captures recent shell command", ag.recentCommands[0]?.includes("latexmk") === true, JSON.stringify(ag.recentCommands));
+const agCtx = await collectContext("continue", process.cwd(), { sessionManager: agentic });
+check("block leads with work in progress", agCtx.relevantContext.includes("Work in progress"));
+check("block names the file", agCtx.relevantContext.includes("manuscript.tex"));
+check("block never breaks mid-line", agCtx.relevantContext.split("\n").every((l) => l.length > 0 && !l.endsWith("…") || l.length < 200));
+
+console.log("\n--- sample context block ---\n" + agCtx.relevantContext);
 process.exit(failed ? 1 : 0);

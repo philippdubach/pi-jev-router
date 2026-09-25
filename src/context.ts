@@ -114,7 +114,27 @@ interface SessionSignals {
   failureKinds: string[];
   attempt: number;
   isFollowUp: boolean;
+  /**
+   * The assistant's side of the transcript. In an agentic session the user's
+   * turns are mostly "continue"; the work is described by what the assistant
+   * last said and which files it touched. A replay of a real session showed
+   * three prior user turns that were all continuations, while the last
+   * assistant text named the file and the fix.
+   */
+  lastAssistantText?: string;
+  recentPaths: string[];
+  recentCommands: string[];
 }
+
+export const MAX_ASSISTANT_CHARS = 240;
+export const MAX_RECENT_PATHS = 6;
+export const MAX_RECENT_COMMANDS = 2;
+const TOOL_CALL_WINDOW = 20;
+
+const EMPTY_SIGNALS: SessionSignals = {
+  recentTurns: [], recentTools: [], failureKinds: [], attempt: 0, isFollowUp: false,
+  recentPaths: [], recentCommands: [],
+};
 
 /**
  * Walk the active branch backwards for recent user intent and tool activity.
@@ -122,7 +142,7 @@ interface SessionSignals {
  * classifier input is never worth throwing a turn for.
  */
 export function readSessionSignals(sessionManager: any): SessionSignals {
-  const empty: SessionSignals = { recentTurns: [], recentTools: [], failureKinds: [], attempt: 0, isFollowUp: false };
+  const empty: SessionSignals = { ...EMPTY_SIGNALS };
   let entries: any[];
   try {
     entries = sessionManager?.getBranch?.() ?? [];
@@ -132,12 +152,34 @@ export function readSessionSignals(sessionManager: any): SessionSignals {
   const recentTurns: string[] = [];
   const recentTools: string[] = [];
   const failureKinds = new Set<string>();
+  const recentPaths: string[] = [];
+  const recentCommands: string[] = [];
+  let lastAssistantText: string | undefined;
+  let toolCallsSeen = 0;
   let userMessages = 0;
 
   for (let i = entries.length - 1; i >= 0; i--) {
     const message = entries[i]?.message;
     if (!message) continue;
-    if (message.role === "user") {
+    if (message.role === "assistant") {
+      for (const part of Array.isArray(message.content) ? message.content : []) {
+        if (part?.type === "text" && !lastAssistantText && typeof part.text === "string" && part.text.trim()) {
+          lastAssistantText = clip(part.text, MAX_ASSISTANT_CHARS);
+        }
+        if (part?.type === "toolCall" && toolCallsSeen < TOOL_CALL_WINDOW) {
+          toolCallsSeen++;
+          const args = part.arguments ?? {};
+          const p = args.path ?? args.file_path;
+          if (typeof p === "string" && p && recentPaths.length < MAX_RECENT_PATHS) {
+            const name = basename(p);
+            if (!recentPaths.includes(name)) recentPaths.push(name);
+          }
+          if (part.name === "bash" && typeof args.command === "string" && recentCommands.length < MAX_RECENT_COMMANDS) {
+            recentCommands.push(clip(args.command, 60));
+          }
+        }
+      }
+    } else if (message.role === "user") {
       userMessages++;
       if (recentTurns.length < MAX_RECENT_TURNS) {
         const text = typeof message.content === "string"
@@ -160,6 +202,9 @@ export function readSessionSignals(sessionManager: any): SessionSignals {
     failureKinds: [...failureKinds].slice(0, 4),
     attempt: Math.max(0, userMessages - 1),
     isFollowUp: userMessages > 0,
+    lastAssistantText,
+    recentPaths,
+    recentCommands,
   };
 }
 
@@ -179,7 +224,7 @@ export async function collectContext(
   } = {},
 ): Promise<CollectedContext> {
   const referencedPaths = extractPaths(prompt, cwd);
-  const session = opts.sessionManager ? readSessionSignals(opts.sessionManager) : { recentTurns: [], recentTools: [], failureKinds: [], attempt: 0, isFollowUp: false };
+  const session = opts.sessionManager ? readSessionSignals(opts.sessionManager) : { ...EMPTY_SIGNALS };
   const repo = await collectRepoFacts(cwd);
   const language = inferLanguage(referencedPaths);
 
@@ -196,6 +241,11 @@ export async function collectContext(
   if (opts.contextFiles?.length) lines.push(`Project instruction files loaded: ${opts.contextFiles.slice(0, 4).map((p) => basename(p)).join(", ")}`);
   if (session.recentTools.length) lines.push(`Tools already used in this session: ${session.recentTools.join(", ")}`);
   if (session.failureKinds.length) lines.push(`Recent tool failures: ${session.failureKinds.join(", ")}`);
+  // The assistant's side of the transcript comes first: on a continuation
+  // prompt it is the only line that says what the work is.
+  if (session.lastAssistantText) lines.push(`Work in progress, from the assistant's last message: "${session.lastAssistantText}"`);
+  if (session.recentPaths.length) lines.push(`Files the assistant recently edited or read: ${session.recentPaths.join(", ")}`);
+  if (session.recentCommands.length) lines.push(`Recent shell commands: ${session.recentCommands.map((c) => `\`${c}\``).join("; ")}`);
   if (session.recentTurns.length) {
     lines.push(`Earlier requests in this session: ${session.recentTurns.map((t) => `"${t}"`).join(" then ")}`);
   } else {
@@ -203,7 +253,16 @@ export async function collectContext(
   }
   if (opts.hasImages) lines.push("The request includes an image attachment.");
 
-  const relevantContext = clip(lines.join("\n"), MAX_CONTEXT_CHARS).replace(/ (Git branch|Files named|Primary language|Project instruction|Tools already|Recent tool|Earlier requests|This is the first|The request names|The request includes|Not a git)/g, "\n$1");
+  // Bound the block by dropping whole trailing lines, never mid-line, so a
+  // label is never separated from its value.
+  const kept: string[] = [];
+  let used = 0;
+  for (const line of lines) {
+    if (used + line.length + 1 > MAX_CONTEXT_CHARS) break;
+    kept.push(line);
+    used += line.length + 1;
+  }
+  const relevantContext = kept.join("\n");
 
   const facts: TaskFacts = {
     language,
