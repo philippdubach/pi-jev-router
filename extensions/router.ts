@@ -162,7 +162,7 @@ export default function (pi: ExtensionAPI) {
     if (pinnedModelId) recommendation.modelId = pinnedModelId;
     if (manualPin) {
       lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active" };
-      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, workKind, inheritedWorkKind: inherit.inherited });
+      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, contextHead: collected.relevantContext, workKind, inheritedWorkKind: inherit.inherited });
       applyMode(ctx);
       return;
     }
@@ -217,6 +217,7 @@ export default function (pi: ExtensionAPI) {
       note: note ?? (switched ? "switched" : "shadow"),
       objective: event.prompt,
       contextChars: collected.relevantContext.length,
+      contextHead: collected.relevantContext,
       workKind,
       inheritedWorkKind: inherit.inherited,
       candidateCount: recommendation.candidateCount,

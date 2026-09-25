@@ -23,6 +23,12 @@ export interface DecisionRecord {
    */
   objective?: string;
   contextChars?: number;
+  /**
+   * Head of the context block that reached the classifier. Diagnosing why a
+   * prompt classified as unclear required replaying a session file by hand
+   * because the ledger stored only the length.
+   */
+  contextHead?: string;
   workKind?: string;
   /** True when a continuation prompt inherited the previous work kind. */
   inheritedWorkKind?: boolean;
@@ -39,12 +45,16 @@ export interface DecisionRecord {
 
 /** Prompts can be long and can carry secrets; keep only a short head. */
 export const OBJECTIVE_SNIPPET_CHARS = 160;
+export const CONTEXT_HEAD_CHARS = 400;
 
 export function record(entry: Omit<DecisionRecord, "ts">): void {
   mkdirSync(LEDGER_DIR, { recursive: true });
   const safe = { ...entry };
   if (typeof safe.objective === "string") {
     safe.objective = safe.objective.replace(/\s+/g, " ").trim().slice(0, OBJECTIVE_SNIPPET_CHARS);
+  }
+  if (typeof safe.contextHead === "string") {
+    safe.contextHead = safe.contextHead.slice(0, CONTEXT_HEAD_CHARS);
   }
   appendFileSync(LEDGER_FILE, JSON.stringify({ ts: new Date().toISOString(), ...safe }) + "\n");
 }
