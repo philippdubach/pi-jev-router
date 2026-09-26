@@ -1,0 +1,398 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "totalTasks": 6,
+      "passedTasks": 6,
+      "passRate": 100,
+      "totalCostUsd": 0.8475618,
+      "costPerSuccessUsd": 0.1412603,
+      "avgLatencyMs": 20932.166666666668,
+      "totalTokens": 437856
+    },
+    {
+      "strategy": "model:openai/gpt-6-sol",
+      "totalTasks": 6,
+      "passedTasks": 6,
+      "passRate": 100,
+      "totalCostUsd": 0.2990031,
+      "costPerSuccessUsd": 0.049833850000000006,
+      "avgLatencyMs": 15301.5,
+      "totalTokens": 390666
+    },
+    {
+      "strategy": "model:google/gemini-3.8-flash",
+      "totalTasks": 6,
+      "passedTasks": 4,
+      "passRate": 66.66666666666666,
+      "totalCostUsd": 0.745130025,
+      "costPerSuccessUsd": 0.18628250625,
+      "avgLatencyMs": 92787,
+      "totalTokens": 1629237
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 29393,
+      "tokens": {
+        "input": 10,
+        "output": 1895,
+        "cacheRead": 61083,
+        "cacheWrite": 20525,
+        "total": 83513
+      },
+      "costUsd": 0.1527816,
+      "turns": 4
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 17215,
+      "tokens": {
+        "input": 12,
+        "output": 896,
+        "cacheRead": 84538,
+        "cacheWrite": 22381,
+        "total": 107827
+      },
+      "costUsd": 0.14678059999999998,
+      "turns": 5
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 43 sentences, all <= 20 words, 22 imperative steps.",
+      "latencyMs": 15473,
+      "tokens": {
+        "input": 6,
+        "output": 1294,
+        "cacheRead": 20304,
+        "cacheWrite": 18974,
+        "total": 40578
+      },
+      "costUsd": 0.12483480000000001,
+      "turns": 2
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 21914,
+      "tokens": {
+        "input": 10,
+        "output": 1616,
+        "cacheRead": 61289,
+        "cacheWrite": 20272,
+        "total": 83187
+      },
+      "costUsd": 0.14597780000000002,
+      "turns": 4
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 16107,
+      "tokens": {
+        "input": 8,
+        "output": 955,
+        "cacheRead": 39675,
+        "cacheWrite": 18932,
+        "total": 59570
+      },
+      "costUsd": 0.121727,
+      "turns": 3
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 25491,
+      "tokens": {
+        "input": 8,
+        "output": 2197,
+        "cacheRead": 40290,
+        "cacheWrite": 20686,
+        "total": 63181
+      },
+      "costUsd": 0.15546,
+      "turns": 3
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 15928,
+      "tokens": {
+        "input": 12,
+        "output": 720,
+        "cacheRead": 36692,
+        "cacheWrite": 13010,
+        "total": 50434
+      },
+      "costUsd": 0.0470874,
+      "turns": 4
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 15623,
+      "tokens": {
+        "input": 18,
+        "output": 725,
+        "cacheRead": 62603,
+        "cacheWrite": 13738,
+        "total": 77084
+      },
+      "costUsd": 0.0541516,
+      "turns": 6
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 22 sentences, all <= 20 words, 6 imperative steps.",
+      "latencyMs": 7809,
+      "tokens": {
+        "input": 6,
+        "output": 387,
+        "cacheRead": 11490,
+        "cacheWrite": 11878,
+        "total": 23761
+      },
+      "costUsd": 0.035875000000000004,
+      "turns": 2,
+      "rescored": "planning/hard verifier fixed 2026-09-26 (qualified-name dots, fenced DDL continuation, Business Rules preamble, compound-instruction false positive); artifact re-verified in place"
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 17450,
+      "tokens": {
+        "input": 18,
+        "output": 739,
+        "cacheRead": 60958,
+        "cacheWrite": 12958,
+        "total": 74673
+      },
+      "costUsd": 0.0520126,
+      "turns": 6
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 8473,
+      "tokens": {
+        "input": 12,
+        "output": 374,
+        "cacheRead": 35459,
+        "cacheWrite": 12187,
+        "total": 48032
+      },
+      "costUsd": 0.0413233,
+      "turns": 4
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 26526,
+      "tokens": {
+        "input": 27,
+        "output": 1389,
+        "cacheRead": 101546,
+        "cacheWrite": 13720,
+        "total": 116682
+      },
+      "costUsd": 0.06855320000000001,
+      "turns": 9
+    },
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 95764,
+      "tokens": {
+        "input": 92100,
+        "output": 7939,
+        "cacheRead": 195444,
+        "cacheWrite": 0,
+        "total": 295483
+      },
+      "costUsd": 0.11350455000000002,
+      "turns": 17
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 68151,
+      "tokens": {
+        "input": 162167,
+        "output": 1865,
+        "cacheRead": 222450,
+        "cacheWrite": 0,
+        "total": 386482
+      },
+      "costUsd": 0.14530275,
+      "turns": 22
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 30 sentences, all <= 20 words, 11 imperative steps.",
+      "latencyMs": 9302,
+      "tokens": {
+        "input": 17114,
+        "output": 573,
+        "cacheRead": 8009,
+        "cacheWrite": 0,
+        "total": 25696
+      },
+      "costUsd": 0.015584925,
+      "turns": 2
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": false,
+      "timedOut": true,
+      "verifierOutput": "Correct, but over budget: 13 turns against a budget of 12. Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 180004,
+      "tokens": {
+        "input": 118909,
+        "output": 25017,
+        "cacheRead": 107929,
+        "cacheWrite": 0,
+        "total": 251855
+      },
+      "costUsd": 0.191090175,
+      "turns": 13,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 51554,
+      "tokens": {
+        "input": 77656,
+        "output": 4560,
+        "cacheRead": 107596,
+        "cacheWrite": 0,
+        "total": 189812
+      },
+      "costUsd": 0.0834117,
+      "turns": 12
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": false,
+      "timedOut": false,
+      "verifierOutput": "Correct, but over budget: 22 turns against a budget of 12. Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 151947,
+      "tokens": {
+        "input": 147792,
+        "output": 16458,
+        "cacheRead": 315659,
+        "cacheWrite": 0,
+        "total": 479909
+      },
+      "costUsd": 0.19623592499999998,
+      "turns": 22
+    }
+  ]
+}

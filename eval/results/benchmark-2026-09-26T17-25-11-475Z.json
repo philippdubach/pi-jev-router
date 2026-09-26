@@ -1,0 +1,66 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:openai/gpt-6-sol",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.0626923,
+      "costPerSuccessUsd": 0.0626923,
+      "avgLatencyMs": 13569,
+      "totalTokens": 67732
+    },
+    {
+      "strategy": "model:openai/gpt-5.6-luna",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.00404369,
+      "costPerSuccessUsd": 0.00404369,
+      "avgLatencyMs": 8228,
+      "totalTokens": 24358
+    }
+  ],
+  "results": [
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "STE & Humanizer verification passed (25 sentences checked, clean of AI tropes).",
+      "latencyMs": 13569,
+      "tokens": {
+        "input": 12,
+        "output": 588,
+        "cacheRead": 48279,
+        "cacheWrite": 18853,
+        "total": 67732
+      },
+      "costUsd": 0.0626923,
+      "turns": 4
+    },
+    {
+      "taskId": "write_incident_postmortem",
+      "strategy": "model:openai/gpt-5.6-luna",
+      "modelUsed": "openai/gpt-5.6-luna",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "STE & Humanizer verification passed (42 sentences checked, clean of AI tropes).",
+      "latencyMs": 8228,
+      "tokens": {
+        "input": 6,
+        "output": 640,
+        "cacheRead": 11537,
+        "cacheWrite": 12175,
+        "total": 24358
+      },
+      "costUsd": 0.00404369,
+      "turns": 2
+    }
+  ]
+}

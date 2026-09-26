@@ -1,0 +1,157 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "totalTasks": 2,
+      "passedTasks": 2,
+      "passRate": 100,
+      "totalCostUsd": 0.4256178,
+      "costPerSuccessUsd": 0.2128089,
+      "avgLatencyMs": 57197.5,
+      "totalTokens": 113332
+    },
+    {
+      "strategy": "model:openai/gpt-6-sol",
+      "totalTasks": 2,
+      "passedTasks": 2,
+      "passRate": 100,
+      "totalCostUsd": 0.15325830000000001,
+      "costPerSuccessUsd": 0.07662915000000001,
+      "avgLatencyMs": 40486,
+      "totalTokens": 125490
+    },
+    {
+      "strategy": "model:google/gemini-3.8-flash",
+      "totalTasks": 2,
+      "passedTasks": 1,
+      "passRate": 50,
+      "totalCostUsd": 0.32403787500000003,
+      "costPerSuccessUsd": 0.32403787500000003,
+      "avgLatencyMs": 128264.5,
+      "totalTokens": 643949
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Migration plan passed: 13 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "latencyMs": 76138,
+      "tokens": {
+        "input": 8,
+        "output": 6496,
+        "cacheRead": 39366,
+        "cacheWrite": 23790,
+        "total": 69660
+      },
+      "costUsd": 0.2567752,
+      "turns": 3
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:anthropic/claude-opus-5.5",
+      "modelUsed": "anthropic/claude-opus-5.5",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Incident runbook passed: 7 owned, ordered steps covering all four systems.",
+      "latencyMs": 38257,
+      "tokens": {
+        "input": 6,
+        "output": 3145,
+        "cacheRead": 20143,
+        "cacheWrite": 20378,
+        "total": 43672
+      },
+      "costUsd": 0.1688426,
+      "turns": 2
+    },
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Migration plan passed: 9 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "latencyMs": 60987,
+      "tokens": {
+        "input": 12,
+        "output": 4078,
+        "cacheRead": 44674,
+        "cacheWrite": 18900,
+        "total": 67664
+      },
+      "costUsd": 0.0969888,
+      "turns": 4,
+      "rescored": "planning/hard verifier fixed 2026-09-26 (qualified-name dots, fenced DDL continuation, Business Rules preamble, compound-instruction false positive); artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Incident runbook passed: 8 owned, ordered steps covering all four systems.",
+      "latencyMs": 19985,
+      "tokens": {
+        "input": 12,
+        "output": 875,
+        "cacheRead": 41240,
+        "cacheWrite": 15699,
+        "total": 57826
+      },
+      "costUsd": 0.0562695,
+      "turns": 4
+    },
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "high",
+      "correct": false,
+      "passed": false,
+      "timedOut": false,
+      "verifierOutput": "Migration plan failed:\n- No step switches reads to the new column.\n- No step stops writing the old column.\n- Dual-write appears before the column exists.",
+      "latencyMs": 125422,
+      "tokens": {
+        "input": 51288,
+        "output": 14707,
+        "cacheRead": 153621,
+        "cacheWrite": 0,
+        "total": 219616
+      },
+      "costUsd": 0.105138825,
+      "turns": 8
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:google/gemini-3.8-flash",
+      "modelUsed": "google/gemini-3.8-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Incident runbook passed: 5 owned, ordered steps covering all four systems.",
+      "latencyMs": 131107,
+      "tokens": {
+        "input": 190542,
+        "output": 15907,
+        "cacheRead": 217884,
+        "cacheWrite": 0,
+        "total": 424333
+      },
+      "costUsd": 0.21889905000000004,
+      "turns": 15
+    }
+  ]
+}

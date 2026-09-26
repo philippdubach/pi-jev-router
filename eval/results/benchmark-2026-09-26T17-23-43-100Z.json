@@ -1,0 +1,67 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:openai/gpt-6-sol",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.03589730000000001,
+      "costPerSuccessUsd": 0.03589730000000001,
+      "avgLatencyMs": 6915,
+      "totalTokens": 23763
+    },
+    {
+      "strategy": "model:openai/gpt-5.6-luna",
+      "totalTasks": 1,
+      "passedTasks": 1,
+      "passRate": 100,
+      "totalCostUsd": 0.00384619,
+      "costPerSuccessUsd": 0.00384619,
+      "avgLatencyMs": 8068,
+      "totalTokens": 24013
+    }
+  ],
+  "results": [
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:openai/gpt-6-sol",
+      "modelUsed": "openai/gpt-6-sol",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 26 sentences, all <= 20 words, 9 imperative steps.",
+      "latencyMs": 6915,
+      "tokens": {
+        "input": 6,
+        "output": 389,
+        "cacheRead": 11489,
+        "cacheWrite": 11879,
+        "total": 23763
+      },
+      "costUsd": 0.03589730000000001,
+      "turns": 2,
+      "rescored": "planning/hard verifier fixed 2026-09-26 (qualified-name dots, fenced DDL continuation, Business Rules preamble, compound-instruction false positive); artifact re-verified in place"
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:openai/gpt-5.6-luna",
+      "modelUsed": "openai/gpt-5.6-luna",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 37 sentences, all <= 20 words, 14 imperative steps.",
+      "latencyMs": 8068,
+      "tokens": {
+        "input": 6,
+        "output": 512,
+        "cacheRead": 11492,
+        "cacheWrite": 12003,
+        "total": 24013
+      },
+      "costUsd": 0.00384619,
+      "turns": 2
+    }
+  ]
+}
