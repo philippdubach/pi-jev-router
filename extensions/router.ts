@@ -84,13 +84,21 @@ export default function (pi: ExtensionAPI) {
     evidenceCache = loadEvidence();
   }
 
+  // What actually ran: activeModel when a switch happened (this is the pin's
+  // model when a pin is active), else the pick, falling back to activeModel
+  // when the pick is empty (abstain).
+  const pickForDisplay = (d?: { recommendation: Recommendation; activeModel?: string; switched?: boolean }): string | undefined => {
+    if (!d) return undefined;
+    return d.switched ? (d.activeModel ?? d.recommendation.modelId) : (d.recommendation.modelId || d.activeModel);
+  };
+
   const showStatus = (ctx: any) => {
     const label = mode === "shadow" ? "SHADOW" : mode === "auto" ? (trial ? `AUTO·dry ${trial.remaining}/${trial.total}` : "AUTO") : "OFF";
     const pin = pinnedModelId ? ` · pinned:${pinnedModelId}` : "";
     const budget = sessionBudgetUsd !== undefined ? ` · $${sessionSpendUsd.toFixed(4)}/$${sessionBudgetUsd}` : "";
     ctx.ui.setStatus(
       "jev-router",
-      `${label}${pin} · ${lastDecision ? (lastDecision.recommendation.modelId || lastDecision.activeModel || "idle") : "idle"}`,
+      `${label}${pin} · ${pickForDisplay(lastDecision) ?? "idle"}`,
     );
   };
 
@@ -166,8 +174,8 @@ export default function (pi: ExtensionAPI) {
     const recommendation = selectModel(envelope, classification, catalogCache, evidenceCache, workKind);
     let note = !available ? `classifier unavailable (${classification.error}) — static fallback` : undefined;
 
-    // Respect pins.
-    if (pinnedModelId) recommendation.modelId = pinnedModelId;
+    // Respect pins. recommendation.modelId stays the frontier's pick; the pin
+    // only changes what actually runs (activeModel), applied at the switch site.
     if (manualPin) {
       lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active", activeModel: manualPin };
       record({ taskId, mode, recommendation, activeModel: manualPin, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, contextHead: collected.relevantContext, contextTokens: collected.facts.estimatedContextTokens, workKind, inheritedWorkKind: inherit.inherited });
@@ -199,7 +207,9 @@ export default function (pi: ExtensionAPI) {
       if (overBudget) {
         ctx.ui.notify(`jev-router: session budget $${sessionBudgetUsd} reached — not switching`, "warning");
       } else {
-        const target = recommendation.modelId;
+        // A pin overrides the frontier's pick as the switch target, without
+        // touching recommendation.modelId (the pick stays what it was).
+        const target = pinnedModelId ?? recommendation.modelId;
         const switchedOk = await switchModel(ctx, target, ROLE_THINKING[workKind]);
         if (switchedOk === true) switched = true;
         if (switchedOk === undefined) note = `target model unavailable in Pi catalog; restart Pi after configuring ${target}`;
@@ -221,11 +231,12 @@ export default function (pi: ExtensionAPI) {
     // Classifier spend is ours; approximate from its usage.
     if (classification.usage?.cost) sessionSpendUsd += classification.usage.cost;
 
-    // The model that actually ran the turn. It is the pick when we switched to
-    // it, else whatever the session was already on (pin held, budget gate,
-    // shadow mode, or the abstain branch above).
+    // The model that actually ran the turn. It is the switch target (the pin,
+    // when one is active) when we switched, else whatever the session was
+    // already on (pin held but switch failed, budget gate, shadow mode, or
+    // the abstain branch above).
     const activeModel: string | undefined = switched
-      ? recommendation.modelId
+      ? (pinnedModelId ?? recommendation.modelId)
       : (ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined);
 
     lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched, activeModel };
@@ -266,7 +277,7 @@ export default function (pi: ExtensionAPI) {
     const tier = workKind;
     const verb = switched ? "routed to" : "would route to";
     ctx.ui.notify(
-      `jev-router: ${verb} ${recommendation.modelId || activeModel || "(current)"} (${tier}, ${recommendation.reason})` +
+      `jev-router: ${verb} ${pickForDisplay({ recommendation, activeModel, switched }) ?? "(current)"} (${tier}, ${recommendation.reason})` +
         (note ? ` — ${note}` : ""),
       "info",
     );
@@ -555,7 +566,7 @@ export default function (pi: ExtensionAPI) {
             `mode: ${mode}`,
             `pin: ${pinnedModelId ?? "none"} · manual model change: ${manualPin ?? "none"}`,
             `budget: ${sessionBudgetUsd !== undefined ? "$" + sessionBudgetUsd : "unset"} · spent $${sessionSpendUsd.toFixed(4)}`,
-            lastDecision ? `last: ${lastDecision.recommendation.modelId || lastDecision.activeModel || "(current)"} (${lastDecision.recommendation.reason})` : "no decision yet",
+            lastDecision ? `last: ${pickForDisplay(lastDecision) ?? "(current)"} (${lastDecision.recommendation.reason})` : "no decision yet",
             `ledger: ${LEDGER_FILE}`,
             `catalog: ${catalogCache.length} models (${catalogSource})`,
             `weights: ${JSON.stringify(PROFILE_WEIGHTS)}`,
