@@ -67,6 +67,8 @@ function buildQuestions(env: TaskEnvelope) {
         debugging: "Diagnose why current behavior differs from expected behavior",
         architecture: "Design or restructure across components or systems",
         review: "Critically evaluate an existing artifact for correctness or quality",
+        planning: "Produce a plan, roadmap or ordered sequence of steps before any change is made",
+        writing: "Write or edit prose for people: articles, documentation, release notes, emails, summaries",
         unclear: "The objective or supplied context is insufficient to classify",
       },
     },

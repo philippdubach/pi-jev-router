@@ -5,6 +5,10 @@ const cases: Array<[string, string, string]> = [
   ["Implement an LRU cache in TypeScript with unit tests", "implementation", "code"],
   ["Review this pull request for correctness and regressions", "review", "code"],
   ["Write a 150-word product announcement blog post", "unclear", "writing"],
+  ["write the release notes for v0.2 in CHANGELOG.md", "implementation", "writing"],
+  ["investigate and /plan further improvements", "unclear", "planning"],
+  ["Tidy the introduction", "writing", "writing"],
+  ["Lay out the migration steps", "planning", "planning"],
 ];
 
 let failed = 0;

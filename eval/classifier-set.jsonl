@@ -1,0 +1,32 @@
+{"prompt":"work through the full roadmap","context":"","expected":"planning","source":"ledger"}
+{"prompt":"investigate and /plan further improvements","context":"","expected":"planning","source":"ledger"}
+{"prompt":"what do we need to go from draft to preprint /plan this in detail","context":"","expected":"planning","source":"ledger"}
+{"prompt":"Draft a roadmap for migrating the router to SQLite before we touch any code","context":"","expected":"planning","source":"added"}
+{"prompt":"Lay out the steps to migrate the paper's analysis pipeline to the new dataset","context":"","expected":"planning","source":"added"}
+{"prompt":"Sketch an architecture for splitting the classifier into two passes","context":"","expected":"planning","source":"added"}
+{"prompt":"Outline the plan for splitting this task across three sessions","context":"","expected":"planning","source":"added"}
+{"prompt":"/plan the v0.3 release before we start coding","context":"","expected":"planning","source":"added"}
+{"prompt":"update all benchmarks to update the frontier","context":"","expected":"code","source":"ledger"}
+{"prompt":"do all items e2e comit and push betwean each but dont stop or ask questions always use expert subagents if something unclear","context":"","expected":"code","source":"ledger"}
+{"prompt":"implement an LRU cache with TTL in src/cache.ts and add tests","context":"Working directory: pi-jev-router\nGit branch: main, 1 uncommitted file(s)\nFiles named in the request: src/cache.ts (not found)\nPrimary language of those files: TypeScript\nThis is the first request in the session.","expected":"code","source":"ledger"}
+{"prompt":"fix the failing test in src/frontier.ts where the knee picks the wrong point","context":"Working directory: pi-jev-router\nGit branch: main, 1 uncommitted file(s)\nFiles named in the request: src/frontier.ts\nPrimary language of those files: TypeScript\nThis is the first request in the session.","expected":"code","source":"ledger"}
+{"prompt":"fix the changelog generator script so it includes merge commits","context":"","expected":"code","source":"added"}
+{"prompt":"Refactor the evidence aggregation function to avoid the O(n^2) loop","context":"","expected":"code","source":"added"}
+{"prompt":"Run the test suite and fix whatever is failing in src/board.ts","context":"","expected":"code","source":"added"}
+{"prompt":"Review this diff for a race condition in the SQLite writer","context":"","expected":"code","source":"added"}
+{"prompt":"write the release notes for v0.2 in CHANGELOG.md","context":"Working directory: pi-jev-router\nGit branch: main, 1 uncommitted file(s)\nFiles named in the request: CHANGELOG.md (not found)\nPrimary language of those files: Markdown\nThis is the first request in the session.","expected":"writing","source":"ledger"}
+{"prompt":"make a minimal STE readme and an agents.md","context":"","expected":"writing","source":"added"}
+{"prompt":"Tidy the introduction","context":"","expected":"writing","source":"added"}
+{"prompt":"Rewrite the abstract of the paper for clarity","context":"","expected":"writing","source":"added"}
+{"prompt":"Draft the email to the reviewers explaining the delay","context":"","expected":"writing","source":"added"}
+{"prompt":"Polish the discussion section of the manuscript so it reads naturally","context":"","expected":"writing","source":"added"}
+{"prompt":"Write a summary of this week's changes for the team","context":"","expected":"writing","source":"added"}
+{"prompt":"Update the docs for the new CLI flag","context":"","expected":"writing","source":"added"}
+{"prompt":"make sure to fix all and continue with the paper","context":"","expected":"other","source":"ledger"}
+{"prompt":"is the paper now at a A tier standard ?","context":"","expected":"other","source":"ledger"}
+{"prompt":"create and open the pdf","context":"","expected":"other","source":"ledger"}
+{"prompt":"Is this section publication ready?","context":"","expected":"other","source":"added"}
+{"prompt":"How much did last week's benchmark run cost?","context":"","expected":"other","source":"added"}
+{"prompt":"Check whether the release branch has diverged from main","context":"","expected":"other","source":"added"}
+{"prompt":"Rebase this branch onto main and resolve conflicts","context":"","expected":"other","source":"added"}
+{"prompt":"Open the latest eval report and tell me the total cost","context":"","expected":"other","source":"added"}

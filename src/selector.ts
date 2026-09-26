@@ -113,13 +113,17 @@ export interface Recommendation {
 export function resolveWorkKind(explicit?: string, category?: string, promptText?: string): WorkKind {
   if (explicit === "planning" || explicit === "code" || explicit === "writing") return explicit;
   const lower = (promptText ?? "").toLowerCase();
+  // `\b` does not match between a space and `/`, so `/plan` needs its own test.
+  if (/(^|\s)\/plan\b/.test(lower)) return "planning";
   // Clear text-level intent takes precedence where category is ambiguous:
-  if (/\b(architecture|architect|design (a|the|some|our)?|system design|rfc|spec|tradeoffs?|rollout plan|plan the)\b/.test(lower)) {
+  if (/\b(architecture|architect|design (a|the|some|our)?|system design|rfc|spec|tradeoffs?|rollout plan|plan the|roadmap|plan (this|it|out))\b/.test(lower)) {
     return "planning";
   }
   if (/\b(write\b.*\b(blog|article|post|essay|copy|paragraph|prose|readme|summary|intro)|draft\b|humanize|polish the text|rewrite|simplified technical english|ste\b)\b/.test(lower)) {
     return "writing";
   }
+  // Needs a writing verb, so "fix the changelog generator" stays code.
+  if (/\b(write|draft|update)\b.*\b(changelog|release notes|docs?|documentation|readme)\b/.test(lower)) return "writing";
   switch (category) {
     case "architecture": return "planning";
     case "implementation":
@@ -128,6 +132,8 @@ export function resolveWorkKind(explicit?: string, category?: string, promptText
     case "review": return "code";
     case "lookup":
     case "explanation": return "writing";
+    case "planning": return "planning";
+    case "writing": return "writing";
     default: return "other";
   }
 }
