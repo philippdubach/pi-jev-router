@@ -387,4 +387,150 @@ check("real Gemini plan (object-first stop-write phrasing) passes", geminiObject
 rmSync(join(dir2, "migration-plan.md"));
 
 rmSync(dir2, { recursive: true, force: true });
+
+// ---------- fix round 3: every probe sentence from the round-2 re-review ----------
+// Controller ruling R12: every probe sentence from both code-review passes
+// becomes a committed test. These are the round-2 re-review's cases
+// (mined from t9r2/probes.ts): findings 2, 3 and 6 were not actually fixed
+// by round 2's changes, and round 2 introduced a new hole in finding 4 (a
+// correct plan wrongly failing) alongside the one it closed.
+const R1_SETUP = `## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+`;
+const wrapR3 = (body: string) => `# Plan\n${CTX}\n${body}\n## Rollback\nRevert.\n`;
+const r3Cases: Array<[string, boolean, string]> = [
+  // Finding 2: same-release drop, various ORM phrasings. Each must still
+  // fail even though the drop sentence also mentions the ORM.
+  ["F2: 'Drop the column and remove it from the ORM model.' same release", false, wrapR3(`${R1_SETUP}## Release 3
+5. Stop writing to the old full_name column.
+6. Drop the column and remove it from the ORM model.
+## Release 4
+7. Drop the leftover index on the old column.`)],
+  ["F2: 'Drop column full_name and remove it from the ORM.' same release", false, wrapR3(`${R1_SETUP}## Release 3
+5. Stop writing to the old full_name column.
+6. Drop column full_name and remove it from the ORM.
+## Release 4
+7. Drop the leftover index on the old column.`)],
+  ["F2: 'Remove the full_name column from the database and the ORM model.' same release", false, wrapR3(`${R1_SETUP}## Release 3
+5. Stop writing to the old full_name column.
+6. Remove the full_name column from the database and the ORM model.
+## Release 4
+7. Drop the leftover index on the old column.`)],
+  ["F2: bare 'model' term, 'remove it from the users model and drop the column' same release", false, wrapR3(`${R1_SETUP}## Release 3
+5. Stop writing to the old full_name column, remove it from the users model and drop the column.
+## Release 4
+6. Drop the leftover index on the old column.`)],
+  // Finding 3: a release-phase heading that happens to say "business
+  // logic" / "data integrity rules" is never a preamble - its own step (an
+  // early, wrong read switch) must still be read and still fail.
+  ["F3: '## Release 2: business logic' heading hides early switch", false, wrapR3(`## Release 1: expand
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+## Release 2: business logic
+3. Switch reads to first_name and last_name.
+## Release 3: backfill
+4. Backfill existing rows from full_name.
+5. Confirm all reads use first_name and last_name.
+## Release 4
+6. Stop writing to the old full_name column.
+## Release 5
+7. Drop the old column full_name.`)],
+  ["F3: '## Release 2: move business logic to the new columns' hides early switch", false, wrapR3(`## Release 1: expand
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+## Release 2: move business logic to the new columns
+3. Switch reads to first_name and last_name.
+## Release 3: backfill
+4. Backfill existing rows from full_name.
+5. Confirm all reads use first_name and last_name.
+## Release 4
+6. Stop writing to the old full_name column.
+## Release 5
+7. Drop the old column full_name.`)],
+  ["F3: '## Release 2: read path and integrity rules' hides early switch", false, wrapR3(`## Release 1: expand
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+## Release 2: read path and integrity rules
+3. Switch reads to first_name and last_name.
+## Release 3: backfill
+4. Backfill existing rows from full_name.
+5. Confirm all reads use first_name and last_name.
+## Release 4
+6. Stop writing to the old full_name column.
+## Release 5
+7. Drop the old column full_name.`)],
+  // Finding 6: object-first stopWrite forms need a negation guard and a
+  // real object - neither of these describes an actual write cutover.
+  ["F6: negated 'old writes are not removed yet' is not credited as stop-write", false, wrapR3(`${R1_SETUP}## Release 3
+5. Monitor for a week; old writes are not removed yet.
+## Release 4
+6. Drop the old column full_name.`)],
+  ["F6: 'write lock removed' is not credited as stop-write", false, wrapR3(`${R1_SETUP}## Release 3
+5. Confirm the temporary write lock is removed from the users table.
+## Release 4
+6. Drop the old column full_name.`)],
+  ["F6: negated 'write path is not exclusively first_name' is not credited", false, wrapR3(`${R1_SETUP}## Release 3
+5. Keep the dual write: the write path is not exclusively first_name and last_name yet.
+## Release 4
+6. Drop the old column full_name.`)],
+  // Minor: "together" must not cross a "parsed FROM full_name" source
+  // reference to reach a write it never actually performs.
+  ["minor: 'writes ... parsed from full_name, together' is not dual-write", false, wrapR3(`## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes first_name and last_name, parsed from full_name, together on every save.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)],
+  // Finding 4 (new hole introduced by round 2): a correct plan's dual-write
+  // step must still pass when it mentions the old column as the read
+  // source in a different clause, and a heading-style read-switch with the
+  // verb after "read" must still be credited.
+  ["F4: correct plan, 'Reads use full_name while first_name and last_name fill in' still passes", true, wrapR3(`## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns. Reads use full_name while first_name and last_name fill in.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)],
+  ["F4: correct plan, 'Read path switched to first_name' heading style still passes", true, wrapR3(`## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Deploy with read path switched to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)],
+  // Finding 3 positive control: a genuine "## Business Logic" definitional
+  // section (no release/phase word) must stay a preamble skip.
+  ["F3: correct plan, '## Business Logic' definitional section still passes", true, `# Plan
+## Business Logic
+1. Split on the last space.
+2. Single tokens go to first_name.
+3. Empty strings stay null.
+${wrapR3(R1_SETUP + `## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)}`],
+];
+for (const [name, wantOk, text] of r3Cases) {
+  const dir3 = mkdtempSync(join(tmpdir(), "plan-verify-r3-"));
+  writeFileSync(join(dir3, "migration-plan.md"), text);
+  const r = await verifyMigrationPlan(dir3);
+  check(name, r.ok === wantOk, r.message);
+  rmSync(dir3, { recursive: true, force: true });
+}
+
 process.exit(failed ? 1 : 0);

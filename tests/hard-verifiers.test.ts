@@ -111,4 +111,31 @@ const real = await verifyStrictSTE(dir2);
 check("real gpt-6-sol runbook (list object, not compound) passes", real.ok, real.message);
 rmSync(dir2, { recursive: true, force: true });
 
+// ---------- fix round 3: every probe sentence from the round-2 re-review (t9r2/ste.ts) ----------
+// Controller ruling R12: every probe sentence from both code-review passes
+// becomes a committed test. Round 2's short-noun-tail and Oxford-comma-list
+// exemptions were themselves too wide: "and restart the service" (a
+// 3-word tail) and "Stop X, drain Y, and restart Z" (a comma-list whose
+// items are all full commands) both went unflagged.
+const dir3 = mkdtempSync(join(tmpdir(), "ste-verify-r3-"));
+const r3SteCases: Array<[boolean, string]> = [
+  [true, "Drain the queue on the primary broker node and restart the service."],
+  [true, "Stop the consumer, drain the queue, and restart the service."],
+  [true, "Stop the affected message queue consumer and restart the pods."],
+  [true, "Stop the affected consumer on the primary node and notify the team."],
+  [true, "Scale the consumer deployment down to zero replicas and delete lock files."],
+  [true, "Open the deployment console for the consumer service and select Restart."],
+  [true, "Check the logs, metrics, and traces and restart the failing consumer service."],
+  [false, "Identify the consumer service, queue, deployment environment, and owning team."],
+  [false, "Obtain access to the service manager and monitoring dashboard."],
+  [false, "Record the current consumer lag, partition offset, and restart count."],
+];
+for (const [wantCompound, sentence] of r3SteCases) {
+  writeFileSync(join(dir3, "runbook.md"), runbookWithStep(sentence));
+  const r = await verifyStrictSTE(dir3);
+  const gotCompound = r.message.includes("compound instruction");
+  check(`r3 compound=${wantCompound}: "${sentence.slice(0, 55)}..."`, gotCompound === wantCompound, r.message);
+}
+rmSync(dir3, { recursive: true, force: true });
+
 process.exit(failed ? 1 : 0);

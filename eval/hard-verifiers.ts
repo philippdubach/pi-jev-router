@@ -80,25 +80,44 @@ export async function verifyStrictSTE(workspaceDir: string): Promise<VerifyResul
   // original, permissive rule) - a requirement on what comes right after
   // "and" turned out to reject most real compounds, since a second command
   // is phrased too many ways ("and then X", "and X it", "and X all Y", "and
-  // X Y in Z") to pin down by shape. Instead, only two shapes are exempted,
-  // because they are provably a list rather than a second command: an
-  // Oxford-comma list ("A, B, and C" - at least two commas before this
-  // "and"), and a short (<=3 word) noun phrase that runs straight to the
-  // sentence's end with nothing further ("and monitoring dashboard.", "and
-  // restart count."). Both exemptions are overridden back to "compound"
-  // when the tail is unmistakably a second command: "and then <...>" (a
-  // temporal connective always introduces a second action) or "and <word>
-  // <pronoun>" (a second verb taking a pronoun object, "and restart it").
+  // X Y in Z") to pin down by shape. Two shapes are exempted, because they
+  // are provably a list rather than a second command: an Oxford-comma list
+  // ("A, B, and C" - at least two commas before this "and"), and a short
+  // (<=3 word) noun phrase that runs straight to the sentence's end with
+  // nothing further ("and monitoring dashboard.", "and current restart
+  // count."). Both exemptions are overridden back to "compound" whenever
+  // the tail is unmistakably a second command:
+  //   - "and then <...>" (a temporal connective always introduces a second
+  //     action);
+  //   - "and <word> <pronoun>" (a second verb taking a pronoun object, "and
+  //     restart it");
+  //   - "and <word> <determiner>" (a second verb taking an article-led
+  //     object, "and restart THE service" / "and drain the queue, and
+  //     restart THE service" - this also reaches into an Oxford-comma
+  //     *chain of imperatives*, where every "item" is its own full command,
+  //     not a plain list: "Stop the consumer, drain the queue, and restart
+  //     the service.").
+  // The short-tail exemption itself must not fire when the word right after
+  // "and" is one of a small set of unambiguous bare-form runbook verbs
+  // (never a "-ing" gerund, which is what makes "and monitoring dashboard"
+  // and "and owning team" read as noun phrases, not actions): "and delete
+  // lock files.", "and select Restart." are two-command sentences whose
+  // second object never takes a determiner or a comma list, and the only
+  // way to tell them from "and restart count." (a measurement noun, not an
+  // action) is that "delete"/"select" don't also double as a plain noun.
   const AND_THEN = /\band\s+then\b/i;
   const AND_PRONOUN_OBJECT = /\band\s+[a-z]+\s+(it|them|him|her|us|this|that|these|those)\b/i;
-  const AND_SHORT_NOUN_TAIL = /\band\s+[a-z]+(?:\s+[a-z]+){0,2}\W*$/i;
+  const AND_DETERMINER_OBJECT = /\band\s+[a-z]+\s+(the|a|an|its|their|his|her|your|our|this|that|these|those)\b/i;
+  const AND_SHORT_NOUN_TAIL = /\band\s+([a-z]+)((?:\s+[a-z]+){0,2})\W*$/i;
+  const BARE_ACTION_VERB = /^(stops?|starts?|restarts?|reboots?|drains?|deletes?|removes?|drops?|kills?|terminates?|purges?|flushes?|clears?|notifies?|escalates?|checks?|confirms?|verifies?|validates?|records?|obtains?|identifies?|waits?|opens?|closes?|selects?|scales?|disables?|enables?|pauses?|resumes?|rotates?|revokes?|reissues?|invalidates?|pages?|alerts?|contacts?|schedules?|isolates?|quarantines?|reverts?|applies?|deploys?|redeploys?|reloads?|refreshes?|disconnects?|reconnects?|updates?|acknowledges?)$/i;
   const isCompound = (s: string): boolean => {
     if (!/^[A-Z][a-z]+\b[^.]*\band\b\s+[a-z]+\b/.test(s) || wordCount(s) <= 8) return false;
-    if (AND_THEN.test(s) || AND_PRONOUN_OBJECT.test(s)) return true;
+    if (AND_THEN.test(s) || AND_PRONOUN_OBJECT.test(s) || AND_DETERMINER_OBJECT.test(s)) return true;
     const andIndex = s.search(/\band\b/i);
     const commasBeforeAnd = (s.slice(0, andIndex).match(/,/g) || []).length;
     if (commasBeforeAnd >= 2) return false; // Oxford-comma list: "A, B, and C"
-    if (AND_SHORT_NOUN_TAIL.test(s)) return false; // short noun phrase to the end
+    const tail = s.match(AND_SHORT_NOUN_TAIL);
+    if (tail && !BARE_ACTION_VERB.test(tail[1])) return false; // short noun phrase to the end
     return true;
   };
   const compound = sentences.filter(isCompound);
