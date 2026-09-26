@@ -21,7 +21,7 @@ for (const [prompt, category, expected] of cases) {
 const roleAssertions = [
   FALLBACK_MODELS.planning === "anthropic/claude-sonnet-5",
   FALLBACK_MODELS.code === "anthropic/claude-sonnet-5",
-  FALLBACK_MODELS.writing === "openai/gpt-5.4-mini",
+  FALLBACK_MODELS.writing === "deepseek/deepseek-v4-flash-0731",
   Object.values(FALLBACK_MODELS).every((id) => id.includes("/")),
   ROLE_THINKING.planning === "high",
   ROLE_THINKING.code === "medium",

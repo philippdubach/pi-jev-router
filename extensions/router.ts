@@ -353,7 +353,7 @@ export default function (pi: ExtensionAPI) {
     name: "dispatch_task",
     label: "Dispatch Task",
     description:
-      "Delegate an implementation or research subtask to an isolated worker session. The worker is routed by role: code -> openrouter/pareto-code, writing -> fast OpenAI, planning -> frontier. Use this to keep your own context clean.",
+      "Delegate an implementation or research subtask to an isolated worker session. The worker gets the frontier pick for its role (planning, code or writing), the same selection the router uses for the main session. Use this to keep your own context clean.",
     promptSnippet: "Delegate an implementation subtask to an isolated routed worker session",
     promptGuidelines: [
       "Use dispatch_task when you have designed a subtask with clear acceptance criteria and want an isolated worker to implement it.",
