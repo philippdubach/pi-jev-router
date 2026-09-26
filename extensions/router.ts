@@ -20,9 +20,11 @@
  *   /router test            — classify a sample task end-to-end
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { statSync } from "node:fs";
+import { join } from "node:path";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
 import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, DECOMPOSE_HINT_THRESHOLD, type Recommendation, type WorkKind } from "../src/selector.ts";
-import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
+import { loadCatalog, CATALOG_TTL_MS, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
 import { estimateTargetTokens, inheritWorkKind, isSameModel, continuationDecision, type RoutedTask } from "../src/continuity.ts";
@@ -37,6 +39,7 @@ import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
 import { LOADED_VERSION, readVersion } from "../src/version.ts";
+import { assistantCost, shouldReload } from "../src/session-state.ts";
 import { Type } from "typebox";
 import type { TaskEnvelope, ClassificationResult } from "../src/task-envelope.ts";
 
@@ -77,13 +80,18 @@ export default function (pi: ExtensionAPI) {
   let catalogCache: CatalogModel[] = [];
   let catalogSource: "network" | "cache" | "bootstrap" = "bootstrap";
   let evidenceCache: EvidenceIndex = {};
+  let loadedState = { at: 0, resultsMtimeMs: 0 };
+  const RESULTS_DIR = join(import.meta.dirname, "..", "eval", "results");
 
   async function ensureCatalog(): Promise<void> {
-    if (catalogCache.length > 0) return;
+    let mtime = 0;
+    try { mtime = statSync(RESULTS_DIR).mtimeMs; } catch {}
+    if (catalogCache.length > 0 && !shouldReload(loadedState, Date.now(), mtime, CATALOG_TTL_MS)) return;
     const loaded = await loadCatalog();
     catalogCache = loaded.models;
     catalogSource = loaded.source;
     evidenceCache = loadEvidence();
+    loadedState = { at: Date.now(), resultsMtimeMs: mtime };
   }
 
   // What actually ran: activeModel when a switch happened (this is the pin's
@@ -115,6 +123,7 @@ export default function (pi: ExtensionAPI) {
   // the failure, put the route on cooldown and hand the turn back to the user
   // on the metered route.
   pi.on("message_end", async (event, ctx) => {
+    sessionSpendUsd += assistantCost(event.message);
     const message: any = event.message;
     if (message?.role !== "assistant" || !message.errorMessage) return;
     const provider = message.provider;
