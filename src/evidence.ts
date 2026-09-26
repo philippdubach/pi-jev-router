@@ -18,7 +18,19 @@ export interface EvalRow {
   /** Verifier verdict before any turn budget. Older files omit it. */
   correct?: boolean;
   turns?: number;
+  /** The runner's wall-clock cap fired. Older files omit it. */
+  timedOut?: boolean;
 }
+
+/**
+ * Whether a run that hit the wall-clock cap counts as a failure.
+ *
+ * Default true: a model that does not finish did not solve the task, and a
+ * user waiting for the answer experiences it that way. Set false to score
+ * correctness alone and let the latency axis carry the slowness. The two
+ * views are kept comparable by recording the fact and applying it here.
+ */
+export const TIMEOUT_IS_FAILURE = true;
 
 /**
  * Turns allowed before a run counts as a runaway loop.
@@ -33,7 +45,9 @@ export interface EvalRow {
 export const TURN_BUDGET = 12;
 
 /** Score one recorded run under the current budget. */
-export function scoreRow(row: EvalRow): boolean {
+export function scoreRow(row: EvalRow, opts: { timeoutIsFailure?: boolean } = {}): boolean {
+  const timeoutIsFailure = opts.timeoutIsFailure ?? TIMEOUT_IS_FAILURE;
+  if (row.timedOut && timeoutIsFailure) return false;
   if (row.correct === undefined) return row.passed;
   if (!row.correct) return false;
   return row.turns === undefined || row.turns <= TURN_BUDGET;
@@ -115,6 +129,7 @@ export function loadEvidence(dir = join(import.meta.dirname, "..", "eval", "resu
           latencyMs: Number(r.latencyMs),
           correct: typeof r.correct === "boolean" ? r.correct : undefined,
           turns: Number.isFinite(r.turns) ? Number(r.turns) : undefined,
+          timedOut: typeof r.timedOut === "boolean" ? r.timedOut : undefined,
         });
       }
     } catch {

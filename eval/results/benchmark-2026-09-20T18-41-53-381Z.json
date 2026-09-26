@@ -48,7 +48,8 @@
         "total": 87816
       },
       "costUsd": 0.0828125,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_semver_sort",
@@ -66,7 +67,8 @@
         "total": 88669
       },
       "costUsd": 0.08297299999999999,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -84,7 +86,8 @@
         "total": 114206
       },
       "costUsd": 0.098058,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -102,7 +105,8 @@
         "total": 59980
       },
       "costUsd": 0.17399030000000001,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -120,7 +124,8 @@
         "total": 89212
       },
       "costUsd": 0.134333,
-      "turns": 3
+      "turns": 3,
+      "timedOut": false
     },
     {
       "taskId": "code_lru_ttl",
@@ -138,7 +143,8 @@
         "total": 87935
       },
       "costUsd": 0.69504,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_semver_sort",
@@ -156,7 +162,8 @@
         "total": 88623
       },
       "costUsd": 0.48097,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -174,7 +181,8 @@
         "total": 89852
       },
       "costUsd": 0.21067,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -192,7 +200,8 @@
         "total": 59931
       },
       "costUsd": 0.17394450000000003,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -210,7 +219,8 @@
         "total": 25689
       },
       "costUsd": 0.012599850000000001,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_lru_ttl",
@@ -228,7 +238,8 @@
         "total": 67896
       },
       "costUsd": 0.003348888,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_semver_sort",
@@ -246,7 +257,8 @@
         "total": 83826
       },
       "costUsd": 0.0036052379999999998,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -264,7 +276,8 @@
         "total": 70310
       },
       "costUsd": 0.003553158,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -282,7 +295,8 @@
         "total": 60278
       },
       "costUsd": 0.17586490000000002,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -300,7 +314,8 @@
         "total": 25935
       },
       "costUsd": 0.012896249999999998,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     }
   ]
 }

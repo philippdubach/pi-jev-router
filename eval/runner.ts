@@ -136,6 +136,7 @@ async function runSession(
   latencyMs: number;
   output: string;
   error?: string;
+  timedOut?: boolean;
 }> {
   const sessionDir = join(workspaceDir, ".session");
   mkdirSync(sessionDir, { recursive: true });
@@ -183,6 +184,7 @@ async function runSession(
         latencyMs: Date.now() - start,
         output: finalOutput,
         error: "Execution timed out",
+        timedOut: true,
       });
     }, timeoutMs);
 
@@ -319,6 +321,7 @@ export async function runTaskForStrategy(
     thinkingUsed: selection.thinking,
     correct,
     passed,
+    timedOut: run.timedOut === true,
     verifierOutput,
     latencyMs: run.latencyMs,
     tokens: run.tokens,

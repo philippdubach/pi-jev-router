@@ -40,4 +40,14 @@ const bad = buildEvidence([
 check("drops rows with no model", statsFor(bad, "", "code") === undefined);
 check("drops rows with non-finite cost", statsFor(bad, "m/c", "code") === undefined);
 
+
+// --- timeouts scored at read time ---
+import { scoreRow } from "../src/evidence.ts";
+const timedOutRow: any = { taskId: "code_x", modelUsed: "m", passed: false, costUsd: 0.01, latencyMs: 180000, correct: true, turns: 3, timedOut: true };
+check("timeout fails by default", scoreRow(timedOutRow) === false);
+check("timeout can be scored on correctness alone", scoreRow(timedOutRow, { timeoutIsFailure: false }) === true);
+const cleanRow: any = { ...timedOutRow, timedOut: false, latencyMs: 20000 };
+check("a finished correct run passes either way", scoreRow(cleanRow) && scoreRow(cleanRow, { timeoutIsFailure: false }));
+const wrongTimedOut: any = { ...timedOutRow, correct: false };
+check("a wrong timed-out run fails either way", !scoreRow(wrongTimedOut) && !scoreRow(wrongTimedOut, { timeoutIsFailure: false }));
 process.exit(failed ? 1 : 0);

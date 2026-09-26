@@ -33,6 +33,8 @@ export interface TaskRunResult {
   correct: boolean;
   /** `correct` after the budget is applied. Kept for reports. */
   passed: boolean;
+  /** The wall-clock cap fired. Recorded on its own so read-time scoring can decide what it means. */
+  timedOut?: boolean;
   verifierOutput: string;
   latencyMs: number;
   tokens: {

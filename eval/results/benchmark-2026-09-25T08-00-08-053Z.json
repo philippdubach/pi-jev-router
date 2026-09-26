@@ -59,7 +59,8 @@
         "total": 121316
       },
       "costUsd": 0.0013426308,
-      "turns": 7
+      "turns": 7,
+      "timedOut": false
     },
     {
       "taskId": "code_semver_sort",
@@ -78,7 +79,8 @@
         "total": 56505
       },
       "costUsd": 0.0005425266,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -97,7 +99,8 @@
         "total": 56704
       },
       "costUsd": 0.00041967240000000003,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -116,7 +119,8 @@
         "total": 76265
       },
       "costUsd": 0.0010065342,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -135,7 +139,8 @@
         "total": 42860
       },
       "costUsd": 0.0005217576000000001,
-      "turns": 3
+      "turns": 3,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -154,7 +159,8 @@
         "total": 72778
       },
       "costUsd": 0.0005101572,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -173,7 +179,8 @@
         "total": 174668
       },
       "costUsd": 0.0012258036,
-      "turns": 10
+      "turns": 10,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -192,7 +199,8 @@
         "total": 46727
       },
       "costUsd": 0.00047942579999999996,
-      "turns": 3
+      "turns": 3,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -211,7 +219,8 @@
         "total": 134104
       },
       "costUsd": 0.0018285036000000002,
-      "turns": 8
+      "turns": 8,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -230,7 +239,8 @@
         "total": 81835
       },
       "costUsd": 0.00047554499999999996,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -249,7 +259,8 @@
         "total": 159961
       },
       "costUsd": 0.0010859646,
-      "turns": 10
+      "turns": 10,
+      "timedOut": false
     },
     {
       "taskId": "code_lru_ttl",
@@ -268,7 +279,8 @@
         "total": 51335
       },
       "costUsd": 0.0042876,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_semver_sort",
@@ -287,7 +299,8 @@
         "total": 51412
       },
       "costUsd": 0.0038838,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -306,7 +319,8 @@
         "total": 66520
       },
       "costUsd": 0.00563295,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -325,7 +339,8 @@
         "total": 34296
       },
       "costUsd": 0.005488699999999999,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -344,7 +359,8 @@
         "total": 25651
       },
       "costUsd": 0.003,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -363,7 +379,8 @@
         "total": 50685
       },
       "costUsd": 0.0036429,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -382,7 +399,8 @@
         "total": 65592
       },
       "costUsd": 0.00537445,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -401,7 +419,8 @@
         "total": 24564
       },
       "costUsd": 0.00291735,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -420,7 +439,8 @@
         "total": 75956
       },
       "costUsd": 0.007145549999999999,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -439,7 +459,8 @@
         "total": 48766
       },
       "costUsd": 0.00351245,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -458,7 +479,8 @@
         "total": 65944
       },
       "costUsd": 0.00486495,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_lru_ttl",
@@ -478,7 +500,8 @@
       },
       "costUsd": 0.0022283340000000002,
       "turns": 5,
-      "error": "Execution timed out"
+      "error": "Execution timed out",
+      "timedOut": true
     },
     {
       "taskId": "code_semver_sort",
@@ -497,7 +520,8 @@
         "total": 59361
       },
       "costUsd": 0.0021621319999999998,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -517,7 +541,8 @@
       },
       "costUsd": 0.0035403279999999997,
       "turns": 8,
-      "error": "Execution timed out"
+      "error": "Execution timed out",
+      "timedOut": true
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -537,7 +562,8 @@
       },
       "costUsd": 0.001058794,
       "turns": 3,
-      "error": "Execution timed out"
+      "error": "Execution timed out",
+      "timedOut": true
     },
     {
       "taskId": "write_incident_postmortem",
@@ -556,7 +582,8 @@
         "total": 38929
       },
       "costUsd": 0.00100174,
-      "turns": 3
+      "turns": 3,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -575,7 +602,8 @@
         "total": 129893
       },
       "costUsd": 0.0035535259999999996,
-      "turns": 7
+      "turns": 7,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -594,7 +622,8 @@
         "total": 69401
       },
       "costUsd": 0.0017566260000000003,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -613,7 +642,8 @@
         "total": 25812
       },
       "costUsd": 0.00075118,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -633,7 +663,8 @@
       },
       "costUsd": 0.0017241460000000002,
       "turns": 4,
-      "error": "Execution timed out"
+      "error": "Execution timed out",
+      "timedOut": true
     },
     {
       "taskId": "code_interval_merge",
@@ -652,7 +683,8 @@
         "total": 97364
       },
       "costUsd": 0.002240966,
-      "turns": 7
+      "turns": 7,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -672,7 +704,8 @@
       },
       "costUsd": 0.000769636,
       "turns": 2,
-      "error": "Execution timed out"
+      "error": "Execution timed out",
+      "timedOut": true
     },
     {
       "taskId": "code_lru_ttl",
@@ -691,7 +724,8 @@
         "total": 81824
       },
       "costUsd": 0.0739371,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_semver_sort",
@@ -710,7 +744,8 @@
         "total": 81995
       },
       "costUsd": 0.0728057,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_retry_queue",
@@ -729,7 +764,8 @@
         "total": 81996
       },
       "costUsd": 0.0736786,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "plan_distributed_ratelimiter",
@@ -748,7 +784,8 @@
         "total": 60113
       },
       "costUsd": 0.1914528,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -767,7 +804,8 @@
         "total": 40094
       },
       "costUsd": 0.0621309,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -786,7 +824,8 @@
         "total": 101492
       },
       "costUsd": 0.0758695,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -805,7 +844,8 @@
         "total": 85197
       },
       "costUsd": 0.0828497,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -824,7 +864,8 @@
         "total": 39634
       },
       "costUsd": 0.0571271,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -843,7 +884,8 @@
         "total": 81494
       },
       "costUsd": 0.0720606,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -862,7 +904,8 @@
         "total": 78987
       },
       "costUsd": 0.0646626,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -881,7 +924,8 @@
         "total": 128444
       },
       "costUsd": 0.1069943,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     }
   ]
 }

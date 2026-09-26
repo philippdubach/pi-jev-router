@@ -59,7 +59,8 @@
         "total": 45047
       },
       "costUsd": 0.000617967,
-      "turns": 3
+      "turns": 3,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -78,7 +79,8 @@
         "total": 50449
       },
       "costUsd": 0.0041981,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -97,7 +99,8 @@
         "total": 25968
       },
       "costUsd": 0.00124872,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -116,7 +119,8 @@
         "total": 39820
       },
       "costUsd": 0.058309200000000005,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     }
   ]
 }

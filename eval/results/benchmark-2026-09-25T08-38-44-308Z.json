@@ -18,7 +18,8 @@
       },
       "costUsd": 0.0010009314,
       "turns": 3,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     },
     {
       "taskId": "plan_incident_decomposition",
@@ -38,7 +39,8 @@
       },
       "costUsd": 0.00036980579999999996,
       "turns": 3,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     },
     {
       "taskId": "plan_expand_contract",
@@ -58,7 +60,8 @@
       },
       "costUsd": 0.005075049999999999,
       "turns": 3,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     },
     {
       "taskId": "plan_incident_decomposition",
@@ -78,7 +81,8 @@
       },
       "costUsd": 0.00265905,
       "turns": 2,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     },
     {
       "taskId": "plan_expand_contract",
@@ -99,7 +103,8 @@
       "costUsd": 0.00083603,
       "turns": 2,
       "error": "Execution timed out",
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": true
     },
     {
       "taskId": "plan_incident_decomposition",
@@ -119,7 +124,8 @@
       },
       "costUsd": 0.0016913179999999998,
       "turns": 4,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     },
     {
       "taskId": "plan_expand_contract",
@@ -139,7 +145,8 @@
       },
       "costUsd": 0.1330115,
       "turns": 2,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     },
     {
       "taskId": "plan_incident_decomposition",
@@ -159,7 +166,8 @@
       },
       "costUsd": 0.0739672,
       "turns": 2,
-      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place",
+      "timedOut": false
     }
   ]
 }

@@ -58,7 +58,8 @@
         "total": 81771
       },
       "costUsd": 0.0015178338,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -76,7 +77,8 @@
         "total": 138064
       },
       "costUsd": 0.0012432672000000002,
-      "turns": 8
+      "turns": 8,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -94,7 +96,8 @@
         "total": 63097
       },
       "costUsd": 0.0007312829999999999,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -112,7 +115,8 @@
         "total": 76376
       },
       "costUsd": 0.0005999448,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -130,7 +134,8 @@
         "total": 82453
       },
       "costUsd": 0.0005479782,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -148,7 +153,8 @@
         "total": 158523
       },
       "costUsd": 0.0010743725999999999,
-      "turns": 10
+      "turns": 10,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -166,7 +172,8 @@
         "total": 51451
       },
       "costUsd": 0.0042841500000000005,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -184,7 +191,8 @@
         "total": 78927
       },
       "costUsd": 0.00833255,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -202,7 +210,8 @@
         "total": 49987
       },
       "costUsd": 0.00410635,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -220,7 +229,8 @@
         "total": 107169
       },
       "costUsd": 0.007087700000000001,
-      "turns": 8
+      "turns": 8,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -238,7 +248,8 @@
         "total": 89106
       },
       "costUsd": 0.0073474,
-      "turns": 7
+      "turns": 7,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -256,7 +267,8 @@
         "total": 91646
       },
       "costUsd": 0.0088454,
-      "turns": 7
+      "turns": 7,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -274,7 +286,8 @@
         "total": 159979
       },
       "costUsd": 0.00543448,
-      "turns": 8
+      "turns": 8,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -292,7 +305,8 @@
         "total": 87198
       },
       "costUsd": 0.003217272,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -310,7 +324,8 @@
         "total": 66955
       },
       "costUsd": 0.002537368,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -328,7 +343,8 @@
         "total": 109377
       },
       "costUsd": 0.00421956,
-      "turns": 7
+      "turns": 7,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -346,7 +362,8 @@
         "total": 68285
       },
       "costUsd": 0.002128784,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -364,7 +381,8 @@
         "total": 129119
       },
       "costUsd": 0.005891408,
-      "turns": 8
+      "turns": 8,
+      "timedOut": false
     },
     {
       "taskId": "code_cache_stampede",
@@ -382,7 +400,8 @@
         "total": 101813
       },
       "costUsd": 0.07683359999999999,
-      "turns": 5
+      "turns": 5,
+      "timedOut": false
     },
     {
       "taskId": "code_multifile_rename",
@@ -400,7 +419,8 @@
         "total": 126755
       },
       "costUsd": 0.0890404,
-      "turns": 6
+      "turns": 6,
+      "timedOut": false
     },
     {
       "taskId": "write_strict_ste",
@@ -418,7 +438,8 @@
         "total": 39864
       },
       "costUsd": 0.061320599999999996,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "code_distant_cause",
@@ -436,7 +457,8 @@
         "total": 84585
       },
       "costUsd": 0.0768905,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_interval_merge",
@@ -454,7 +476,8 @@
         "total": 79068
       },
       "costUsd": 0.06495920000000001,
-      "turns": 4
+      "turns": 4,
+      "timedOut": false
     },
     {
       "taskId": "code_thread_field",
@@ -472,7 +495,8 @@
         "total": 176840
       },
       "costUsd": 0.12487100000000001,
-      "turns": 8
+      "turns": 8,
+      "timedOut": false
     }
   ]
 }

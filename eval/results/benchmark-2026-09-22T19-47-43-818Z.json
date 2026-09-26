@@ -59,7 +59,8 @@
         "total": 178897
       },
       "costUsd": 0.001403745,
-      "turns": 10
+      "turns": 10,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -78,7 +79,8 @@
         "total": 25681
       },
       "costUsd": 0.0030045,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -97,7 +99,8 @@
         "total": 26569
       },
       "costUsd": 0.001097008,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     },
     {
       "taskId": "write_incident_postmortem",
@@ -116,7 +119,8 @@
         "total": 40626
       },
       "costUsd": 0.06291680000000001,
-      "turns": 2
+      "turns": 2,
+      "timedOut": false
     }
   ]
 }
