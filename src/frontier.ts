@@ -4,9 +4,11 @@
  * Quality rises. Cost and latency fall. Pure functions only.
  *
  * Two selection rules live here:
- * - `knee` picks the best-balanced frontier point with no weights at all.
- * - `tangency` picks by a weighted value function. It is the fallback for
- *   frontiers too small or too flat for a knee to mean anything.
+ * - `tangency` picks by a weighted value function. The selector uses it to
+ *   pick, because it reads the role's cost aversion and the task's complexity.
+ * - `knee` finds the best-balanced frontier point with no weights at all. The
+ *   selector reports it as a diagnostic, and uses it only if `tangency` has
+ *   no pick.
  */
 
 export interface Scored {

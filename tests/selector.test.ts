@@ -71,7 +71,8 @@ const catalog = [
 
 const writing = selectModel(env(), answers(1, 0) as any, catalog, {}, "writing");
 check("writing route is cheap", writing.modelId === "cheap/flash");
-check("writing reason", writing.reason === "frontier_tangency");
+// No openai/ model is in this catalog, so the writing role policy is relaxed.
+check("writing reason", writing.reason === "relaxed_role_policy");
 check("reports candidate count", writing.candidateCount === 3);
 check("reports frontier", Array.isArray(writing.frontier) && writing.frontier.length >= 1);
 
@@ -92,17 +93,19 @@ const down = selectModel(env(), { ok: false, classifierUnavailable: true, answer
 check("classifier down still selects", down.modelId.length > 0);
 check("classifier down reason", down.reason === "classifier_unavailable");
 
-// --- knee selection ---
-// Three non-dominated models: the middle one is the knee, so it is picked with
-// no weights at all. The pick follows the live frontier.
+// --- knee diagnostic ---
+// Three non-dominated models: the middle one is the knee. The knee no longer
+// picks. It is reported as kneeId, and the weighted value function decides.
+// At code weights the quality step from b/mid to c/strong is worth more than
+// its 3.3 doublings of cost over a 10-doubling span, so c/strong wins.
 const kneeCatalog = [
   model("a/cheap", { promptPrice: 0.0000003, completionPrice: 0.000001, aa: { intelligence: 30, coding: 50, agentic: 30 } }),
   model("b/mid", { promptPrice: 0.000001, completionPrice: 0.000005, aa: { intelligence: 40, coding: 65, agentic: 40 } }),
   model("c/strong", { promptPrice: 0.00001, completionPrice: 0.00005, aa: { intelligence: 53, coding: 82, agentic: 58 } }),
 ];
 const kneePick = selectModel(env(), answers(1, 0) as any, kneeCatalog, {}, "code");
-check("three-point frontier picks the knee", kneePick.modelId === "b/mid");
-check("knee reason", kneePick.reason === "frontier_knee");
+check("three-point frontier reports the knee", kneePick.kneeId === "b/mid");
+check("value function picks, not the knee", kneePick.modelId === "c/strong" && kneePick.reason === "frontier_tangency");
 
 // --- weights table shape ---
 check("writing is the most cost averse", PROFILE_WEIGHTS.writing.lambda > PROFILE_WEIGHTS.code.lambda);

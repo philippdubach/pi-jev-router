@@ -53,6 +53,40 @@ const OPTIMISTIC_PERCENTILE = 0.6;
 
 export type WorkKind = "planning" | "code" | "writing" | "other";
 
+/**
+ * The role policy you set on 20 September 2026. Planning goes to frontier
+ * intelligence. Writing goes to fast OpenAI models, and the STE directive is
+ * applied. Code takes the Pareto pick. These are eligibility rules, not
+ * weights: inside the eligible set the frontier still decides.
+ *
+ * Placed in the widest gap among the top 20 intelligence scores of the
+ * cached catalog (136 models with an index, 26 September 2026) that keeps
+ * more than one billable model eligible. The widest gap overall is
+ * 57.6 -> 53.4, but only claude-opus-5.5 sits above it, so the value
+ * function would have no choice. The next widest is 49.6 -> 47.5: claude-fable-5
+ * at percentile 0.9333 is above it, gpt-6-sol at 0.9185 (its :batch variant
+ * at 0.9259) is below. Above the line: claude-opus-5.5 (57.6),
+ * claude-fable-5.1 (53.4), gpt-6-astra (52.7), claude-opus-5 (50.8) and
+ * claude-fable-5 (49.6). claude-sonnet-5 (38.2) is far below.
+ */
+export const PLANNING_MIN_INTELLIGENCE_PERCENTILE = 0.93;
+export const WRITING_VENDORS = ["openai/"];
+
+/** Percentile of each model's intelligence index among models that list one. */
+export function intelligencePercentile(catalog: CatalogModel[]): Map<string, number> {
+  const scored = catalog.filter((m) => (m.aa?.intelligence ?? 0) > 0).sort((a, b) => a.aa!.intelligence - b.aa!.intelligence);
+  const out = new Map<string, number>();
+  scored.forEach((m, i) => out.set(m.id, scored.length > 1 ? i / (scored.length - 1) : 1));
+  return out;
+}
+
+/** True when the role policy lets this model take work of this kind. */
+export function roleEligible(m: CatalogModel, kind: WorkKind, pct: Map<string, number>): boolean {
+  if (kind === "planning") return (pct.get(m.id) ?? 0) >= PLANNING_MIN_INTELLIGENCE_PERCENTILE;
+  if (kind === "writing") return WRITING_VENDORS.some((v) => m.id.startsWith(v));
+  return true;
+}
+
 export interface Weights { lambda: number; mu: number }
 
 export const PROFILE_WEIGHTS: Record<WorkKind, Weights> = {
@@ -88,6 +122,7 @@ export type RecommendationReason =
   | "frontier_tangency"
   | "relaxed_proven_gate"
   | "relaxed_reasoning"
+  | "relaxed_role_policy"
   | "catalog_unavailable"
   | "classifier_unavailable"
   | "continuation";
@@ -100,6 +135,8 @@ export interface Recommendation {
   tEst?: number;
   candidateCount?: number;
   frontier?: Scored[];
+  /** The knee of the same frontier. A diagnostic only: it does not pick. */
+  kneeId?: string;
   lambda?: number;
   mu?: number;
   complexity?: number;
@@ -257,7 +294,9 @@ export function feasible(
     ignoreProvenGate?: boolean;
     ignoreReasoning?: boolean;
     ignoreQualityFloor?: boolean;
+    ignoreRolePolicy?: boolean;
     priors?: Map<string, number>;
+    intelligencePct?: Map<string, number>;
     now?: number;
   } = {},
 ): boolean {
@@ -278,6 +317,7 @@ export function feasible(
   if (!m.inputModalities.includes("text")) return false;
   if (env.facts.hasImages && !m.inputModalities.includes("image")) return false;
   if (m.expiresAt !== null && m.expiresAt <= now) return false;
+  if (!opts.ignoreRolePolicy && opts.intelligencePct && !roleEligible(m, kind, opts.intelligencePct)) return false;
   if (!opts.ignoreProvenGate && risk >= 2) {
     if ((statsFor(evidence, m.id, kind)?.runs ?? 0) < PROVEN_RUNS) return false;
   }
@@ -388,13 +428,19 @@ export function selectModel(
   const priors = qualityPrior(catalog, kind, evidence);
   const { prior: latPrior, present: latPresent } = latencySignal(evidence, kind);
 
-  // The quality floor is relaxed last: a measured failure should outrank both
-  // the proven gate and the reasoning requirement.
+  const intelligencePct = intelligencePercentile(catalog);
+
+  // The role policy is relaxed after the reasoning requirement, so a role
+  // with no eligible model still routes. The quality floor is relaxed last:
+  // a measured failure should outrank the proven gate, the reasoning
+  // requirement and the role policy.
+  const base = { priors, intelligencePct };
   const attempts: Array<{ opts: Parameters<typeof feasible>[5]; reason: RecommendationReason }> = [
-    { opts: { priors }, reason: "frontier_tangency" },
-    { opts: { priors, ignoreProvenGate: true }, reason: "relaxed_proven_gate" },
-    { opts: { priors, ignoreProvenGate: true, ignoreReasoning: true }, reason: "relaxed_reasoning" },
-    { opts: { priors, ignoreProvenGate: true, ignoreReasoning: true, ignoreQualityFloor: true }, reason: "relaxed_reasoning" },
+    { opts: { ...base }, reason: "frontier_tangency" },
+    { opts: { ...base, ignoreProvenGate: true }, reason: "relaxed_proven_gate" },
+    { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true }, reason: "relaxed_reasoning" },
+    { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true, ignoreRolePolicy: true }, reason: "relaxed_role_policy" },
+    { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true, ignoreRolePolicy: true, ignoreQualityFloor: true }, reason: "relaxed_reasoning" },
   ];
 
   for (const attempt of attempts) {
@@ -403,18 +449,20 @@ export function selectModel(
     const scored = candidates.map((m) => score(m, env, kind, evidence, priors, latPrior));
     const front = nondominated(scored);
     const w = PROFILE_WEIGHTS[kind];
-    // The knee leads. A frontier too small or too flat for a knee falls back to
-    // the weighted value function. Both read the live frontier, so the pick
-    // follows the catalog and the recorded evidence on every task.
     // Complexity scales cost aversion. A hard task tolerates more spend; a
     // trivial one should not pay for capability it will not use. The
     // classifier's complexity score is otherwise computed and never read.
     const lambda = w.lambda * complexityScale(complexity);
     const measured = new Set(front.filter((m) => (statsFor(evidence, m.id, kind)?.runs ?? 0) > 0).map((m) => m.id));
+    // The weighted value function decides. It is the only rule that reads the
+    // role's cost aversion and the task's complexity. The knee led until
+    // 26 September, and a replay showed 24 of 24 picks unmoved by complexity.
+    // It stays as a diagnostic.
+    const tan = tangency(front, lambda, latPresent ? w.mu : 0);
     const kneePick = knee(front, measured);
-    const pick = kneePick ?? tangency(front, lambda, latPresent ? w.mu : 0)?.pick;
+    const pick = tan?.pick ?? kneePick;
     if (!pick) continue;
-    const baseReason: RecommendationReason = kneePick ? "frontier_knee" : "frontier_tangency";
+    const baseReason: RecommendationReason = tan ? "frontier_tangency" : "frontier_knee";
     return {
       modelId: pick.id,
       reason: classification.classifierUnavailable
@@ -427,6 +475,7 @@ export function selectModel(
       tEst: pick.t,
       candidateCount: candidates.length,
       frontier: front,
+      kneeId: kneePick?.id,
       lambda,
       mu: latPresent ? w.mu : 0,
       complexity,
