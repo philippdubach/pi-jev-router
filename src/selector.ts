@@ -122,8 +122,10 @@ export function resolveWorkKind(explicit?: string, category?: string, promptText
   if (/\b(write\b.*\b(blog|article|post|essay|copy|paragraph|prose|readme|summary|intro)|draft\b|humanize|polish the text|rewrite|simplified technical english|ste\b)\b/.test(lower)) {
     return "writing";
   }
-  // Needs a writing verb, so "fix the changelog generator" stays code.
-  if (/\b(write|draft|update)\b.*\b(changelog|release notes|docs?|documentation|readme)\b/.test(lower)) return "writing";
+  // Needs a writing verb, so "fix the changelog generator" stays code. The
+  // object must follow the verb within three words, so "write a script to
+  // parse the docs directory" does not match on "docs" far down the sentence.
+  if (/\b(write|draft|update)\s+(?:\S+\s+){0,3}?(changelog|release notes|docs?|documentation|readme)\b/.test(lower)) return "writing";
   switch (category) {
     case "architecture": return "planning";
     case "implementation":

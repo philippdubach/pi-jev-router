@@ -9,6 +9,8 @@ const cases: Array<[string, string, string]> = [
   ["investigate and /plan further improvements", "unclear", "planning"],
   ["Tidy the introduction", "writing", "writing"],
   ["Lay out the migration steps", "planning", "planning"],
+  ["write a script to parse the docs directory", "implementation", "code"],
+  ["update the docs for the new flag", "implementation", "writing"],
 ];
 
 let failed = 0;
