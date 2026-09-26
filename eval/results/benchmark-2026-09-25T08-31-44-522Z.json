@@ -1,0 +1,165 @@
+{
+  "results": [
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Migration plan passed: 11 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "latencyMs": 10527,
+      "tokens": {
+        "input": 12799,
+        "output": 2537,
+        "cacheRead": 14592,
+        "cacheWrite": 0,
+        "total": 29928
+      },
+      "costUsd": 0.0004898964,
+      "turns": 2,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:inclusionai/ling-3.0-flash",
+      "modelUsed": "inclusionai/ling-3.0-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Incident runbook passed: 5 owned, ordered steps covering all four systems.",
+      "latencyMs": 7125,
+      "tokens": {
+        "input": 6672,
+        "output": 1522,
+        "cacheRead": 19520,
+        "cacheWrite": 0,
+        "total": 27714
+      },
+      "costUsd": 0.00031798199999999997,
+      "turns": 2,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Migration plan passed: 17 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "latencyMs": 24223,
+      "tokens": {
+        "input": 26031,
+        "output": 2469,
+        "cacheRead": 11904,
+        "cacheWrite": 0,
+        "total": 40404
+      },
+      "costUsd": 0.005734349999999999,
+      "turns": 3,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:z-ai/glm-5.3-flash",
+      "modelUsed": "z-ai/glm-5.3-flash",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Incident runbook passed: 6 owned, ordered steps covering all four systems.",
+      "latencyMs": 11396,
+      "tokens": {
+        "input": 12772,
+        "output": 1015,
+        "cacheRead": 11712,
+        "cacheWrite": 0,
+        "total": 25499
+      },
+      "costUsd": 0.0030088999999999997,
+      "turns": 2,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "high",
+      "correct": false,
+      "passed": false,
+      "verifierOutput": "No output file. Checked: migration-plan.md, plan.md, output.md",
+      "latencyMs": 180003,
+      "tokens": {
+        "input": 12401,
+        "output": 254,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 12655
+      },
+      "costUsd": 0.00045330999999999995,
+      "turns": 1,
+      "error": "Execution timed out",
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:deepseek/deepseek-v4-flash-0731",
+      "modelUsed": "deepseek/deepseek-v4-flash-0731",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Incident runbook passed: 6 owned, ordered steps covering all four systems.",
+      "latencyMs": 64989,
+      "tokens": {
+        "input": 13493,
+        "output": 2756,
+        "cacheRead": 41984,
+        "cacheWrite": 0,
+        "total": 58233
+      },
+      "costUsd": 0.0019584539999999997,
+      "turns": 4,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Migration plan passed: 21 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "latencyMs": 48032,
+      "tokens": {
+        "input": 4,
+        "output": 4167,
+        "cacheRead": 19004,
+        "cacheWrite": 22794,
+        "total": 45969
+      },
+      "costUsd": 0.1024638,
+      "turns": 2,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:anthropic/claude-sonnet-5",
+      "modelUsed": "anthropic/claude-sonnet-5",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "verifierOutput": "Incident runbook passed: 7 owned, ordered steps covering all four systems.",
+      "latencyMs": 27399,
+      "tokens": {
+        "input": 4,
+        "output": 2405,
+        "cacheRead": 20195,
+        "cacheWrite": 19910,
+        "total": 42514
+      },
+      "costUsd": 0.07787200000000001,
+      "turns": 2,
+      "rescored": "planning verifier rewritten 2026-09-25; artifact re-verified in place"
+    }
+  ]
+}

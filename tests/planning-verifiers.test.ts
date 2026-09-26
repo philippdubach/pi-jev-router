@@ -76,6 +76,30 @@ Rollback: revert.
 const early = await verifyMigrationPlan(dir);
 check("migration: reads before backfill fails", !early.ok && early.message.includes("before the backfill"), early.message);
 
+// The switch-read step must not match a write-path step that merely mentions
+// reads staying unchanged. This is the exact sentence that fooled the first
+// version.
+put("migration-plan.md", `# Plan
+
+## Context
+Two releases run side by side during every deploy, so each step must keep working while the previous release serves traffic.
+
+## Release N
+1. Add the new columns first_name and last_name.
+2. Update all write paths (create/update user) to write both old and new columns. Reads still use full_name exclusively (no behavior change on the read path yet).
+## Release N+1
+3. Backfill existing rows in batches.
+4. Switch all reads to first_name and last_name.
+5. Stop writing the old full_name column.
+## Release N+2
+6. Drop the old column.
+
+## Rollback
+Revert the release.
+`);
+const tricky = await verifyMigrationPlan(dir);
+check("migration: write-path step mentioning reads is not the switch", tricky.ok, tricky.message);
+
 // ---------- incident ----------
 rmSync(join(dir, "migration-plan.md"));
 check("incident: empty state fails", !(await verifyIncidentRunbook(dir)).ok);
@@ -138,4 +162,27 @@ const noOwner = await verifyIncidentRunbook(dir);
 check("incident: ownerless step fails", !noOwner.ok && noOwner.message.includes("no owner"), noOwner.message);
 
 rmSync(dir, { recursive: true, force: true });
+
+// ---------- real model output as positive control ----------
+// Both were produced by claude-sonnet-5 and are correct plans. The first
+// verifier version rejected both; a verifier that fails a correct plan from
+// the strongest model measures itself, not the model.
+import { copyFileSync } from "node:fs";
+const dir2 = mkdtempSync(join(tmpdir(), "plan-verify-real-"));
+copyFileSync(join(import.meta.dirname, "fixtures", "sonnet-migration-plan.md"), join(dir2, "migration-plan.md"));
+const realMig = await verifyMigrationPlan(dir2);
+check("real Sonnet migration plan passes", realMig.ok, realMig.message);
+// Two more real Sonnet plans. One uses "**Step N.**" numbering and says
+// "do not drop … yet"; the other says "used by the backfill job". Each
+// broke an earlier verifier version.
+for (const name of ["sonnet-migration-plan-2.md", "sonnet-migration-plan-3.md"]) {
+  copyFileSync(join(import.meta.dirname, "fixtures", name), join(dir2, "migration-plan.md"));
+  const r = await verifyMigrationPlan(dir2);
+  check(`real ${name} passes`, r.ok, r.message);
+}
+rmSync(join(dir2, "migration-plan.md"));
+copyFileSync(join(import.meta.dirname, "fixtures", "sonnet-incident-runbook.md"), join(dir2, "incident-runbook.md"));
+const realInc = await verifyIncidentRunbook(dir2);
+check("real Sonnet incident runbook passes", realInc.ok, realInc.message);
+rmSync(dir2, { recursive: true, force: true });
 process.exit(failed ? 1 : 0);
