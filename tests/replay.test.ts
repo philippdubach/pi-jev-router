@@ -22,12 +22,14 @@ const rows = [
   { ts: "2026-09-26T00:00:00Z", objective: "implement x", workKind: "code", classification: cls(1), recommendation: { modelId: "a/cheap" } },
   { ts: "2026-09-26T00:01:00Z", objective: "probe" },                           // no classification
   { ts: "2026-09-26T00:02:00Z", objective: "plan y", classification: cls(2) },  // no workKind -> other
+  { ts: "2026-09-26T00:03:00Z", workKind: "planning", classification: cls(1) }, // no objective
   "not an object",
 ];
 const { replayed, skipped } = replayRows(rows, catalog, {});
-check("classified rows are replayed", replayed.length === 2, String(replayed.length));
+check("classified rows are replayed", replayed.length === 3, String(replayed.length));
 check("unclassified and malformed rows are counted, not thrown", skipped === 2, String(skipped));
 check("missing workKind replays as other", replayed[1].workKind === "other");
+check("missing objective replays with empty string", replayed[2].workKind === "planning" && replayed[2].objective === "");
 check("recorded pick is carried", replayed[0].recorded === "a/cheap");
 const s = summarise(replayed);
 check("summary counts per kind", Object.values(s.code ?? {}).reduce((a, b) => a + b, 0) === 1);

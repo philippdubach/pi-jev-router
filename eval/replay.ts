@@ -31,10 +31,11 @@ export function replayRows(rows: unknown[], catalog: CatalogModel[], evidence: E
   for (const raw of rows) {
     const r = raw as any;
     const cls = r?.classification;
-    if (!r || typeof r !== "object" || !cls?.ok || !cls.answers || typeof r.objective !== "string") { skipped++; continue; }
+    if (!r || typeof r !== "object" || !cls?.ok || !cls.answers) { skipped++; continue; }
+    const objective = typeof r.objective === "string" ? r.objective : "";
     const workKind: WorkKind = KINDS.has(r.workKind) ? r.workKind : "other";
     const env: TaskEnvelope = {
-      taskId: String(r.taskId ?? "replay"), role: "direct", objective: r.objective, acceptanceCriteria: [],
+      taskId: String(r.taskId ?? "replay"), role: "direct", objective, acceptanceCriteria: [],
       relevantContext: String(r.contextHead ?? ""),
       facts: { hasImages: false, estimatedContextTokens: Number(r.contextTokens) || REPLAY_DEFAULT_TOKENS, requiredTools: [], attempt: 0, priorFailureKinds: [] },
       policyRef: "replay",
@@ -42,7 +43,7 @@ export function replayRows(rows: unknown[], catalog: CatalogModel[], evidence: E
     const rec = selectModel(env, cls, catalog, evidence, workKind);
     const cx = cls.answers.complexity?.value;
     replayed.push({
-      ts: String(r.ts ?? ""), objective: r.objective.slice(0, 60), workKind,
+      ts: String(r.ts ?? ""), objective: objective.slice(0, 60), workKind,
       complexity: typeof cx === "number" ? cx : undefined,
       recorded: r.recommendation?.modelId, pick: rec.modelId, reason: rec.reason,
     });
