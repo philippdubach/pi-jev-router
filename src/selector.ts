@@ -171,32 +171,48 @@ export function normalisedIndex(catalog: CatalogModel[], pick: (m: CatalogModel)
 export const MIN_CALIBRATION_MODELS = 3;
 
 /**
- * Map rank priors onto the pass-rate scale.
+ * Anchor quality priors on the range of measured pass rates.
  *
  * A measured model's quality is a pass rate. An unmeasured model's was a rank
- * in the catalog. On one axis the two do not compare: Sonnet at 8 of 8 scored
- * below an unmeasured model's rank, and gpt-6-sol, at Sonnet's price with a
- * higher intelligence index, was dominated only because it had no runs.
- * Fit pass rate against rank over the measured models and read every prior
- * off that line. A negative slope clamps to zero, so every prior becomes the
- * mean pass rate instead of an inverted ranking.
+ * in the catalog. On one axis the two do not compare. A least-squares fit
+ * does not fix this on real data: the fit line runs on only four or five
+ * noisy pass rates, and its slope can come out negative (for code) or steep
+ * (for planning). A negative slope flattens every prior to one mean value. A
+ * steep slope saturates every prior at the cap. Both defeat the point of
+ * calibrating at all.
+ *
+ * Rank order is a steadier signal than a two- or three-point fit line
+ * through the noise, so keep it: map rank linearly onto the range the anchor
+ * models actually measured, `lo` to `hi`. A higher rank always yields a
+ * higher prior, never a lower one, and the prior always lands inside the
+ * measured range instead of outside it.
+ *
+ * `indexed`, when given, restricts the anchor set to models whose rank came
+ * from a real index rather than the optimistic catalog fill. A router
+ * meta-model with no benchmark data (an `openrouter/pareto-code` for
+ * example) can still show measured runs, but its "rank" is a filler value,
+ * so it must not set `lo` or `hi` for everyone else.
  */
-export function calibrate(rank: Map<string, number>, evidence: EvidenceIndex, kind: WorkKind): Map<string, number> {
-  const pts: Array<[number, number]> = [];
+export function calibrate(
+  rank: Map<string, number>,
+  evidence: EvidenceIndex,
+  kind: WorkKind,
+  indexed?: Set<string>,
+): Map<string, number> {
+  const rates: number[] = [];
   for (const [id, kinds] of Object.entries(evidence)) {
     const s = kinds[kind];
     const r = rank.get(id);
-    if (s && s.runs >= PROVEN_RUNS && r !== undefined) pts.push([r, s.passes / s.runs]);
+    if (s && s.runs >= PROVEN_RUNS && r !== undefined && (!indexed || indexed.has(id))) {
+      rates.push(s.passes / s.runs);
+    }
   }
-  if (pts.length < MIN_CALIBRATION_MODELS) return rank;
-  const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
-  const my = pts.reduce((a, p) => a + p[1], 0) / pts.length;
-  const sxx = pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0);
-  const sxy = pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0);
-  const b = sxx > 0 ? Math.max(0, sxy / sxx) : 0;
-  const a = my - b * mx;
+  if (rates.length < MIN_CALIBRATION_MODELS) return rank;
+  const lo = Math.min(...rates);
+  const hi = Math.max(...rates);
+  if (hi <= lo) return rank;
   const out = new Map<string, number>();
-  for (const [id, r] of rank) out.set(id, Math.min(0.99, Math.max(0.05, a + b * r)));
+  for (const [id, r] of rank) out.set(id, Math.min(0.99, Math.max(0.05, lo + (hi - lo) * r)));
   return out;
 }
 
@@ -204,7 +220,8 @@ export function calibrate(rank: Map<string, number>, evidence: EvidenceIndex, ki
  * Quality prior per model. The kind's own index comes first. A model that
  * lists it as zero (the newest frontier models list `coding: 0`) falls back
  * to its intelligence rank rather than the optimistic median, which kept
- * claude-opus-5.5 off the code frontier. With evidence, priors are calibrated.
+ * claude-opus-5.5 off the code frontier. With evidence, priors are anchored
+ * on the measured pass-rate range.
  */
 export function qualityPrior(catalog: CatalogModel[], kind: WorkKind, evidence?: EvidenceIndex): Map<string, number> {
   const primary = kind === "writing"
@@ -213,8 +230,17 @@ export function qualityPrior(catalog: CatalogModel[], kind: WorkKind, evidence?:
   const fallback = kind === "writing" ? new Map<string, number>() : normalisedIndex(catalog, (m) => m.aa?.intelligence ?? null);
   const optimistic = percentile([...primary.values()].sort((a, b) => a - b), OPTIMISTIC_PERCENTILE);
   const rank = new Map<string, number>();
-  for (const m of catalog) rank.set(m.id, primary.get(m.id) ?? fallback.get(m.id) ?? optimistic);
-  return evidence ? calibrate(rank, evidence, kind) : rank;
+  // A model only anchors the calibration when its rank came from the primary
+  // or fallback index. The optimistic fill is a placeholder for a model with
+  // no benchmark entry at all, not a measurement, so it must not set the
+  // range that every other prior is read off.
+  const indexed = new Set<string>();
+  for (const m of catalog) {
+    const v = primary.get(m.id) ?? fallback.get(m.id);
+    if (v !== undefined) indexed.add(m.id);
+    rank.set(m.id, v ?? optimistic);
+  }
+  return evidence ? calibrate(rank, evidence, kind, indexed) : rank;
 }
 
 function needsReasoning(kind: WorkKind): boolean {
