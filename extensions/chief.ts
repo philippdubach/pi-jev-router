@@ -23,7 +23,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { createTask, getTask, listTasks, transition, getEvents } from "../src/board.ts";
+import { createTask, getTask, listTasks, transition, getEvents, reapStale } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
 
 const execFileP = promisify(execFile);
@@ -53,6 +53,8 @@ export default function (pi: ExtensionAPI) {
           break;
         }
         case "board": {
+          const reaped = reapStale();
+          if (reaped.length) ctx.ui.notify(`chief: ${reaped.length} stale task(s) moved to blocked: ${reaped.join(", ")}`, "warning");
           const filter = rest as any;
           const tasks = listTasksLocal(filter && ["queued","ready","running","verifying","done","blocked","failed","cancelled"].includes(filter) ? filter : undefined);
           if (tasks.length === 0) { ctx.ui.notify("chief: board is empty", "info"); break; }

@@ -64,12 +64,14 @@ export const PROFILE_WEIGHTS: Record<WorkKind, Weights> = {
 
 /**
  * Used only when the catalog is unavailable, so no frontier can be computed.
- * These are known-good models, not a selection policy.
+ * These are the best-measured models per kind, not a selection policy.
+ * Writing was gpt-5.4-mini until deepseek-v4-flash-0731 reached 12 of 12
+ * at a tenth of the price.
  */
 export const FALLBACK_MODELS: Record<WorkKind, string> = {
   planning: "anthropic/claude-sonnet-5",
   code: "anthropic/claude-sonnet-5",
-  writing: "openai/gpt-5.4-mini",
+  writing: "deepseek/deepseek-v4-flash-0731",
   other: "anthropic/claude-sonnet-5",
 };
 

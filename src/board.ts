@@ -90,6 +90,26 @@ export function getTask(id: string): Task | undefined {
   return r ? rowToTask(r) : undefined;
 }
 
+/** A task left in `verifying` or `running` this long is stale. */
+export const LEASE_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Move tasks whose lease has lapsed to `blocked`, with a reason. Two tasks
+ * sat in `verifying` for five days because nothing ever revisited them.
+ * Returns the ids that were reaped. Safe to call on every board read.
+ */
+export function reapStale(now = Date.now(), timeoutMs = LEASE_TIMEOUT_MS): string[] {
+  const db = getDb();
+  const cutoff = new Date(now - timeoutMs).toISOString();
+  const rows = db.prepare("SELECT id, status, updated_at FROM tasks WHERE status IN ('verifying','running') AND updated_at < ?").all(cutoff) as any[];
+  const reaped: string[] = [];
+  for (const r of rows) {
+    const age = Math.round((now - Date.parse(r.updated_at)) / 3600000);
+    if (transition(r.id, r.status, "blocked", { verification: `lease expired: left in ${r.status} for ${age}h without a verdict` })) reaped.push(r.id);
+  }
+  return reaped;
+}
+
 export function listTasks(status?: TaskStatus): Task[] {
   const rows = status
     ? getDb().prepare("SELECT * FROM tasks WHERE status = ? ORDER BY created_at").all(status)

@@ -37,7 +37,10 @@ is reached.
 ```
 
 A plan route is best effort. A ChatGPT account does not support every Codex
-model, and a plan can hit its usage limit mid-session. Both refusals put the
+model, and a plan can hit its usage limit mid-session. Probed on 22 and 25
+September: three Codex models were unsupported on this plan and the other
+three were at their usage limit both times, so the route has not yet served
+a request. Both refusals put the
 route on a cooldown and fall back to the metered route: unsupported for 30
 days, usage limit for an hour, anything else for ten minutes.
 
