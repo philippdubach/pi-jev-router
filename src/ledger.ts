@@ -6,6 +6,7 @@ import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { ROUTER_DIR } from "./paths.ts";
+import { LOADED_VERSION } from "./version.ts";
 
 export const LEDGER_DIR = ROUTER_DIR;
 export const LEDGER_FILE = join(LEDGER_DIR, "decisions.jsonl");
@@ -41,6 +42,12 @@ export interface DecisionRecord {
   lambda?: number;
   mu?: number;
   reason?: string;
+  /** Loaded package version (`src/version.ts`). */
+  routerVersion?: string;
+  /** The model that ran, when it differs from the pick (pin, abstain, shadow). */
+  activeModel?: string;
+  /** Session size in tokens when the decision was made. Replay needs it. */
+  contextTokens?: number;
 }
 
 /** Prompts can be long and can carry secrets; keep only a short head. */
@@ -56,5 +63,5 @@ export function record(entry: Omit<DecisionRecord, "ts">): void {
   if (typeof safe.contextHead === "string") {
     safe.contextHead = safe.contextHead.slice(0, CONTEXT_HEAD_CHARS);
   }
-  appendFileSync(LEDGER_FILE, JSON.stringify({ ts: new Date().toISOString(), ...safe }) + "\n");
+  appendFileSync(LEDGER_FILE, JSON.stringify({ ts: new Date().toISOString(), routerVersion: LOADED_VERSION, ...safe }) + "\n");
 }

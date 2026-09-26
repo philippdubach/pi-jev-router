@@ -36,6 +36,7 @@ import {
 import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
+import { LOADED_VERSION, readVersion } from "../src/version.ts";
 import { Type } from "typebox";
 import type { TaskEnvelope, ClassificationResult } from "../src/task-envelope.ts";
 
@@ -67,7 +68,7 @@ export default function (pi: ExtensionAPI) {
   let lastWorkKind: WorkKind | undefined;
 
   let lastDecision:
-    | { ts: string; recommendation: Recommendation; classification?: ClassificationResult; note?: string; switched?: boolean }
+    | { ts: string; recommendation: Recommendation; classification?: ClassificationResult; note?: string; switched?: boolean; activeModel?: string }
     | undefined;
 
   // Catalog and evidence are loaded once, then reused. `selectModel` stays pure.
@@ -89,7 +90,7 @@ export default function (pi: ExtensionAPI) {
     const budget = sessionBudgetUsd !== undefined ? ` · $${sessionSpendUsd.toFixed(4)}/$${sessionBudgetUsd}` : "";
     ctx.ui.setStatus(
       "jev-router",
-      `${label}${pin} · ${lastDecision ? lastDecision.recommendation.modelId : "idle"}`,
+      `${label}${pin} · ${lastDecision ? (lastDecision.recommendation.modelId || lastDecision.activeModel || "idle") : "idle"}`,
     );
   };
 
@@ -168,8 +169,8 @@ export default function (pi: ExtensionAPI) {
     // Respect pins.
     if (pinnedModelId) recommendation.modelId = pinnedModelId;
     if (manualPin) {
-      lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active" };
-      record({ taskId, mode, recommendation: lastDecision.recommendation, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, contextHead: collected.relevantContext, workKind, inheritedWorkKind: inherit.inherited });
+      lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active", activeModel: manualPin };
+      record({ taskId, mode, recommendation, activeModel: manualPin, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, contextHead: collected.relevantContext, contextTokens: collected.facts.estimatedContextTokens, workKind, inheritedWorkKind: inherit.inherited });
       applyMode(ctx);
       return;
     }
@@ -182,7 +183,9 @@ export default function (pi: ExtensionAPI) {
     const abstain = recommendation.reason === "brief_unclear";
     if (abstain) {
       note = `brief not ready (clarify at ${recommendation.briefConfidence?.toFixed(2)}) \u2014 not switching`;
-      recommendation.modelId = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "(current)";
+      // Leave the pick empty. The current model is as well placed as any other
+      // to ask the clarifying question; it did not win a route.
+      recommendation.modelId = "";
     }
 
     // A task the classifier thinks is separable gets a hint, never an automatic
@@ -218,7 +221,14 @@ export default function (pi: ExtensionAPI) {
     // Classifier spend is ours; approximate from its usage.
     if (classification.usage?.cost) sessionSpendUsd += classification.usage.cost;
 
-    lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched };
+    // The model that actually ran the turn. It is the pick when we switched to
+    // it, else whatever the session was already on (pin held, budget gate,
+    // shadow mode, or the abstain branch above).
+    const activeModel: string | undefined = switched
+      ? recommendation.modelId
+      : (ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined);
+
+    lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched, activeModel };
 
     if (trial && mode === "auto" && switched) {
       trial.log.push({ objective: event.prompt.replace(/\s+/g, " ").slice(0, 60), model: recommendation.modelId, workKind, reason: recommendation.reason, costEst: recommendation.cEst });
@@ -238,6 +248,7 @@ export default function (pi: ExtensionAPI) {
       objective: event.prompt,
       contextChars: collected.relevantContext.length,
       contextHead: collected.relevantContext,
+      contextTokens: collected.facts.estimatedContextTokens,
       workKind,
       inheritedWorkKind: inherit.inherited,
       candidateCount: recommendation.candidateCount,
@@ -248,13 +259,14 @@ export default function (pi: ExtensionAPI) {
       lambda: recommendation.lambda,
       mu: recommendation.mu,
       reason: recommendation.reason,
+      activeModel,
     });
     applyMode(ctx);
 
     const tier = workKind;
     const verb = switched ? "routed to" : "would route to";
     ctx.ui.notify(
-      `jev-router: ${verb} ${recommendation.modelId} (${tier}, ${recommendation.reason})` +
+      `jev-router: ${verb} ${recommendation.modelId || activeModel || "(current)"} (${tier}, ${recommendation.reason})` +
         (note ? ` — ${note}` : ""),
       "info",
     );
@@ -543,10 +555,16 @@ export default function (pi: ExtensionAPI) {
             `mode: ${mode}`,
             `pin: ${pinnedModelId ?? "none"} · manual model change: ${manualPin ?? "none"}`,
             `budget: ${sessionBudgetUsd !== undefined ? "$" + sessionBudgetUsd : "unset"} · spent $${sessionSpendUsd.toFixed(4)}`,
-            lastDecision ? `last: ${lastDecision.recommendation.modelId} (${lastDecision.recommendation.reason})` : "no decision yet",
+            lastDecision ? `last: ${lastDecision.recommendation.modelId || lastDecision.activeModel || "(current)"} (${lastDecision.recommendation.reason})` : "no decision yet",
             `ledger: ${LEDGER_FILE}`,
             `catalog: ${catalogCache.length} models (${catalogSource})`,
             `weights: ${JSON.stringify(PROFILE_WEIGHTS)}`,
+            (() => {
+              const disk = readVersion();
+              return disk === LOADED_VERSION
+                ? `version: ${LOADED_VERSION}`
+                : `version: ${LOADED_VERSION} loaded, ${disk} on disk — restart pi to load it`;
+            })(),
           ];
           ctx.ui.notify(lines.join("\n"), "info");
         }
