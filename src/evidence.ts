@@ -58,9 +58,31 @@ export interface ModelStats {
   passes: number;
   meanCostUsd: number;
   meanLatencyMs: number;
+  /** The same shape, restricted to hard-suite runs. Absent when there are none. */
+  hard?: Omit<ModelStats, "hard">;
 }
 
 export type EvidenceIndex = Record<string, Partial<Record<WorkKind, ModelStats>>>;
+
+/**
+ * Which suite each benchmark task belongs to. The base suite is passed by
+ * every model, so on a hard task it says little: ling-3.0-flash and Sonnet
+ * both clear it. Hard tasks read hard evidence when there is enough of it.
+ * A test fails if a task id in eval/ is missing here.
+ */
+export const TASK_TIER: Record<string, "base" | "hard"> = {
+  code_lru_ttl: "base", code_semver_sort: "base", code_retry_queue: "base",
+  plan_distributed_ratelimiter: "base", write_incident_postmortem: "base",
+  code_cache_stampede: "hard", code_multifile_rename: "hard", write_strict_ste: "hard",
+  code_distant_cause: "hard", code_interval_merge: "hard", code_thread_field: "hard",
+  plan_expand_contract: "hard", plan_incident_decomposition: "hard",
+};
+
+/**
+ * Minimum hard-suite runs before the hard cell is trusted over the overall
+ * cell. Below this a single hard run would swing the estimate on noise.
+ */
+export const MIN_HARD_RUNS = 2;
 
 /** Benchmark task ids are prefixed by work kind. */
 export function workKindFromTaskId(taskId: string): WorkKind {
@@ -71,8 +93,11 @@ export function workKindFromTaskId(taskId: string): WorkKind {
   return "other";
 }
 
+interface RawCell { runs: number; passes: number; cost: number; latency: number }
+
 export function buildEvidence(rows: EvalRow[]): EvidenceIndex {
-  const acc: Record<string, Partial<Record<WorkKind, { runs: number; passes: number; cost: number; latency: number }>>> = {};
+  const acc: Record<string, Partial<Record<WorkKind, RawCell>>> = {};
+  const hardAcc: Record<string, Partial<Record<WorkKind, RawCell>>> = {};
   for (const row of rows) {
     if (!row || typeof row.modelUsed !== "string" || row.modelUsed.length === 0) continue;
     if (!Number.isFinite(row.costUsd) || !Number.isFinite(row.latencyMs)) continue;
@@ -83,16 +108,30 @@ export function buildEvidence(rows: EvalRow[]): EvidenceIndex {
     if (scoreRow(row)) cell.passes += 1;
     cell.cost += row.costUsd;
     cell.latency += row.latencyMs;
+    // Keep a second, hard-suite-only accumulator alongside the overall one.
+    if (TASK_TIER[row.taskId ?? ""] === "hard") {
+      const hardByModel = (hardAcc[row.modelUsed] ??= {});
+      const hardCell = (hardByModel[kind] ??= { runs: 0, passes: 0, cost: 0, latency: 0 });
+      hardCell.runs += 1;
+      if (scoreRow(row)) hardCell.passes += 1;
+      hardCell.cost += row.costUsd;
+      hardCell.latency += row.latencyMs;
+    }
   }
+  const toStats = (cell: RawCell): Omit<ModelStats, "hard"> => ({
+    runs: cell.runs,
+    passes: cell.passes,
+    meanCostUsd: cell.cost / cell.runs,
+    meanLatencyMs: cell.latency / cell.runs,
+  });
   const out: EvidenceIndex = {};
   for (const [modelId, kinds] of Object.entries(acc)) {
     out[modelId] = {};
-    for (const [kind, cell] of Object.entries(kinds) as [WorkKind, any][]) {
+    for (const [kind, cell] of Object.entries(kinds) as [WorkKind, RawCell][]) {
+      const hardCell = hardAcc[modelId]?.[kind];
       out[modelId][kind] = {
-        runs: cell.runs,
-        passes: cell.passes,
-        meanCostUsd: cell.cost / cell.runs,
-        meanLatencyMs: cell.latency / cell.runs,
+        ...toStats(cell),
+        ...(hardCell ? { hard: toStats(hardCell) } : {}),
       };
     }
   }
@@ -103,8 +142,11 @@ export function statsFor(
   evidence: EvidenceIndex,
   modelId: string,
   kind: WorkKind,
+  opts: { hard?: boolean } = {},
 ): ModelStats | undefined {
-  return evidence[modelId]?.[kind];
+  const cell = evidence[modelId]?.[kind];
+  if (opts.hard && cell?.hard && cell.hard.runs >= MIN_HARD_RUNS) return cell.hard;
+  return cell;
 }
 
 /** Read every benchmark result file in `dir` and aggregate them. */

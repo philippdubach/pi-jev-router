@@ -1,5 +1,9 @@
 // Evidence aggregation — run: node --experimental-strip-types tests/evidence.test.ts
-import { buildEvidence, workKindFromTaskId, statsFor, type EvalRow } from "../src/evidence.ts";
+import { buildEvidence, workKindFromTaskId, statsFor, TASK_TIER, type EvalRow } from "../src/evidence.ts";
+import { BENCHMARK_TASKS } from "../eval/tasks.ts";
+import { HARD_TASKS } from "../eval/hard-tasks.ts";
+import { CEILING_TASKS } from "../eval/ceiling-tasks.ts";
+import { PLANNING_TASKS } from "../eval/planning-tasks.ts";
 
 let failed = 0;
 const check = (name: string, ok: boolean) => {
@@ -50,4 +54,17 @@ const cleanRow: any = { ...timedOutRow, timedOut: false, latencyMs: 20000 };
 check("a finished correct run passes either way", scoreRow(cleanRow) && scoreRow(cleanRow, { timeoutIsFailure: false }));
 const wrongTimedOut: any = { ...timedOutRow, correct: false };
 check("a wrong timed-out run fails either way", !scoreRow(wrongTimedOut) && !scoreRow(wrongTimedOut, { timeoutIsFailure: false }));
+
+// --- hard-task tier and hard-cell evidence ---
+for (const t of [...BENCHMARK_TASKS, ...HARD_TASKS, ...CEILING_TASKS, ...PLANNING_TASKS]) {
+  check(`tier known: ${t.id}`, TASK_TIER[t.id] === "base" || TASK_TIER[t.id] === "hard");
+}
+const tierRow = (taskId: string, passed: boolean) => ({ taskId, modelUsed: "m/x", passed, costUsd: 0.01, latencyMs: 1000 });
+const tierEv = buildEvidence([tierRow("code_lru_ttl", true), tierRow("code_lru_ttl", true), tierRow("code_distant_cause", false), tierRow("code_thread_field", true)]);
+check("overall cell counts all runs", statsFor(tierEv, "m/x", "code")?.runs === 4);
+check("hard cell counts hard runs", statsFor(tierEv, "m/x", "code")?.hard?.runs === 2 && statsFor(tierEv, "m/x", "code")?.hard?.passes === 1);
+check("hard lookup returns the hard cell", statsFor(tierEv, "m/x", "code", { hard: true })?.runs === 2);
+const thin = buildEvidence([tierRow("code_lru_ttl", true), tierRow("code_distant_cause", false)]);
+check("one hard run falls back to overall", statsFor(thin, "m/x", "code", { hard: true })?.runs === 2);
+
 process.exit(failed ? 1 : 0);

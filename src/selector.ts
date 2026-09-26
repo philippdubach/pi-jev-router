@@ -12,6 +12,12 @@ import { WRITING_ELO } from "./writing-prior.ts";
 
 export const K = 5;
 export const PROVEN_RUNS = 3;
+/**
+ * Complexity at or above which a task is "hard" for evidence purposes.
+ * Complexity 2 is "diagnose or design across several dependent steps" in the
+ * classifier's own scale.
+ */
+export const HARD_COMPLEXITY = 2;
 /** Pseudo-count anchoring the pass-rate posterior to the catalog prior. */
 export const EVIDENCE_PSEUDO_COUNT = 2;
 /**
@@ -301,6 +307,8 @@ export function feasible(
     ignoreRolePolicy?: boolean;
     priors?: Map<string, number>;
     now?: number;
+    /** The task is hard: read the hard-suite cell where there is enough of it. */
+    hard?: boolean;
   } = {},
 ): boolean {
   const now = opts.now ?? Date.now();
@@ -328,7 +336,7 @@ export function feasible(
   // the writing profile is cost averse enough that a model which failed the
   // writing benchmark still took the knee. Measured failure outranks price.
   if (!opts.ignoreQualityFloor) {
-    const st = statsFor(evidence, m.id, kind);
+    const st = statsFor(evidence, m.id, kind, { hard: opts.hard });
     if (st && st.runs > 0) {
       const prior = opts.priors?.get(m.id) ?? 0.5;
       if (posteriorQuality(st.passes, st.runs, prior) < QUALITY_FLOOR) return false;
@@ -367,8 +375,9 @@ function score(
   evidence: EvidenceIndex,
   priors: Map<string, number>,
   latencyPrior: number,
+  hard: boolean,
 ): Scored {
-  const st = statsFor(evidence, m.id, kind);
+  const st = statsFor(evidence, m.id, kind, { hard });
   const n = st?.runs ?? 0;
   const w = shrink(n);
 
@@ -406,6 +415,10 @@ export function selectModel(
 ): Recommendation {
   const answers = classification.answers ?? {};
   const complexity = typeof answers.complexity?.value === "number" ? answers.complexity.value : 1;
+  // The base benchmark suite is passed by nearly every model, so on a hard
+  // task it says little. Read the hard-suite cell instead, where there is
+  // enough of it.
+  const hard = complexity >= HARD_COMPLEXITY;
   const rawRisk = typeof answers.risk?.value === "number" ? answers.risk.value : 1;
   // A task that was not classified must not clear the proven gate on a guess.
   const risk = classification.classifierUnavailable ? 3 : rawRisk;
@@ -435,7 +448,7 @@ export function selectModel(
   // with no eligible model still routes. The quality floor is relaxed last:
   // a measured failure should outrank the proven gate, the reasoning
   // requirement and the role policy.
-  const base = { priors };
+  const base = { priors, hard };
   const attempts: Array<{ opts: Parameters<typeof feasible>[5]; reason: RecommendationReason }> = [
     { opts: { ...base }, reason: "frontier_tangency" },
     { opts: { ...base, ignoreProvenGate: true }, reason: "relaxed_proven_gate" },
@@ -447,14 +460,14 @@ export function selectModel(
   for (const attempt of attempts) {
     const candidates = catalog.filter((m) => feasible(m, env, risk, kind, evidence, attempt.opts));
     if (candidates.length === 0) continue;
-    const scored = candidates.map((m) => score(m, env, kind, evidence, priors, latPrior));
+    const scored = candidates.map((m) => score(m, env, kind, evidence, priors, latPrior, hard));
     const front = nondominated(scored);
     const w = PROFILE_WEIGHTS[kind];
     // Complexity scales cost aversion. A hard task tolerates more spend; a
-    // trivial one should not pay for capability it will not use. The
-    // classifier's complexity score is otherwise computed and never read.
+    // trivial one should not pay for capability it will not use. Complexity
+    // also picks the evidence cell: `hard` reads the hard-suite runs above.
     const lambda = w.lambda * complexityScale(complexity);
-    const measured = new Set(front.filter((m) => (statsFor(evidence, m.id, kind)?.runs ?? 0) > 0).map((m) => m.id));
+    const measured = new Set(front.filter((m) => (statsFor(evidence, m.id, kind, { hard })?.runs ?? 0) > 0).map((m) => m.id));
     // The weighted value function decides. It is the only rule that reads the
     // role's cost aversion and the task's complexity. The knee led until
     // 26 September, and a replay showed 24 of 24 picks unmoved by complexity.
