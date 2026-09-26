@@ -57,14 +57,22 @@ export interface DecisionRecord {
 export const OBJECTIVE_SNIPPET_CHARS = 160;
 export const CONTEXT_HEAD_CHARS = 400;
 
+/**
+ * Append a decision record to the ledger. Silently fails to stderr on write error.
+ * A ledger is diagnostics; a failed write must not break a routed task or a dispatch.
+ */
 export function record(entry: Omit<DecisionRecord, "ts">): void {
-  mkdirSync(LEDGER_DIR, { recursive: true });
-  const safe = { ...entry };
-  if (typeof safe.objective === "string") {
-    safe.objective = safe.objective.replace(/\s+/g, " ").trim().slice(0, OBJECTIVE_SNIPPET_CHARS);
+  try {
+    mkdirSync(LEDGER_DIR, { recursive: true });
+    const safe = { ...entry };
+    if (typeof safe.objective === "string") {
+      safe.objective = safe.objective.replace(/\s+/g, " ").trim().slice(0, OBJECTIVE_SNIPPET_CHARS);
+    }
+    if (typeof safe.contextHead === "string") {
+      safe.contextHead = safe.contextHead.slice(0, CONTEXT_HEAD_CHARS);
+    }
+    appendFileSync(LEDGER_FILE, JSON.stringify({ ts: new Date().toISOString(), routerVersion: LOADED_VERSION, ...safe }) + "\n");
+  } catch (err) {
+    process.stderr.write(`jev-router: ledger write failed: ${String(err)}\n`);
   }
-  if (typeof safe.contextHead === "string") {
-    safe.contextHead = safe.contextHead.slice(0, CONTEXT_HEAD_CHARS);
-  }
-  appendFileSync(LEDGER_FILE, JSON.stringify({ ts: new Date().toISOString(), routerVersion: LOADED_VERSION, ...safe }) + "\n");
 }

@@ -1,6 +1,6 @@
 // Ledger — run: node --experimental-strip-types tests/ledger.test.ts
 import { TEST_DIR } from "./_isolate.ts";
-import { readFileSync, mkdtempSync, writeFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { record, LEDGER_FILE } from "../src/ledger.ts";
@@ -23,4 +23,21 @@ const bare = mkdtempSync(join(tmpdir(), "ver-"));
 writeFileSync(join(bare, "package.json"), JSON.stringify({ version: "9.9.9" }));
 check("non-git dir falls back to package version", readVersion(bare) === "v9.9.9", readVersion(bare));
 check("git checkout gives a short sha", /^[0-9a-f]{7,}$/.test(readVersion()), readVersion());
+
+// Ledger write failure must not throw — record() silently fails to stderr.
+try {
+  rmSync(LEDGER_FILE, { force: true, recursive: true });
+  mkdirSync(LEDGER_FILE);
+  let threw = false;
+  try {
+    record({ taskId: "t-blocked", mode: "auto", recommendation: {} });
+  } catch {
+    threw = true;
+  }
+  check("ledger write failure does not throw", !threw);
+  rmSync(LEDGER_FILE, { recursive: true });
+} catch (e) {
+  check("ledger write failure does not throw", false, String(e));
+}
+
 process.exit(failed ? 1 : 0);
