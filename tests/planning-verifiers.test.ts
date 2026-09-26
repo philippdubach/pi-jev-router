@@ -100,6 +100,171 @@ Revert the release.
 const tricky = await verifyMigrationPlan(dir);
 check("migration: write-path step mentioning reads is not the switch", tricky.ok, tricky.message);
 
+// ---------- fix round 2: negative controls the broadened detectors let through ----------
+// A code-review pass on the 2026-09-26 fixes above found five of them wider
+// than the bugs they fixed, each one letting a genuinely wrong plan pass.
+// Every plan below is wrong and must still fail after the narrowing fix.
+const CTX = `## Context
+Two releases run side by side during every deploy, so each step must keep working while the previous release serves traffic.
+`;
+
+// Finding 1: "write X and Y together" without the old column present is not
+// a dual-write - it only ever mentions the new columns.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes first_name and last_name together in one transaction on every name change.
+## Release 2
+3. Backfill existing rows from full_name in batches.
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.
+
+## Rollback
+Revert.
+`);
+const togetherNoOld = await verifyMigrationPlan(dir);
+check("migration: 'together' without the old column is not dual-write", !togetherNoOld.ok, togetherNoOld.message);
+
+// Finding 2: same-release drop, phrased so the drop sentence also mentions
+// the ORM. An unanchored ORM reject would hide this real same-release drop.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+6. Drop the full_name column and remove it from the ORM model.
+## Release 4
+7. Drop the leftover index on the old column.
+
+## Rollback
+Revert.
+`);
+const ormSameReleaseDrop = await verifyMigrationPlan(dir);
+check("migration: drop mentioning the ORM in the same sentence still same-release-fails", !ormSameReleaseDrop.ok, ormSameReleaseDrop.message);
+
+// Finding 3: a real release-phase heading that happens to say "logic" must
+// not be swallowed as a definitional preamble - its own step (an early,
+// wrong read switch) must still be read and still fail the order check.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1: expand
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+## Release 2: read logic
+3. Switch reads to first_name and last_name.
+## Release 3: backfill
+4. Backfill existing rows from full_name.
+5. Confirm all reads use first_name and last_name.
+## Release 4
+6. Stop writing to the old full_name column.
+## Release 5
+7. Drop the old column full_name.
+
+## Rollback
+Revert.
+`);
+const logicHeading = await verifyMigrationPlan(dir);
+check("migration: a 'read logic' release heading is not a preamble skip", !logicHeading.ok, logicHeading.message);
+check("migration: still names the early-switch order violation", logicHeading.message.includes("before the backfill"), logicHeading.message);
+
+// Finding 4: writes stop before reads switch (wrong order), with a spurious
+// "reads ... use a snapshot" sentence in the backfill step that must not be
+// read as switching reads to the new column (it names no new column at all).
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name; reads from the replica use a snapshot during the job.
+## Release 2
+4. Stop writing to the old full_name column.
+## Release 3
+5. Switch reads to first_name and last_name.
+## Release 4
+6. Drop the old column full_name.
+
+## Rollback
+Revert.
+`);
+const stopBeforeSwitch = await verifyMigrationPlan(dir);
+check("migration: stop-write before switch-reads still fails", !stopBeforeSwitch.ok, stopBeforeSwitch.message);
+check("migration: names the write-before-switch order violation", stopBeforeSwitch.message.includes("reads still come from it"), stopBeforeSwitch.message);
+
+// Positive control for finding 4: a correct plan whose dual-write step says
+// "Reads come from full_name" (the OLD column) must still pass - the
+// read-first switchRead form must not treat this as switching reads.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns. Reads come from full_name.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.
+
+## Rollback
+Revert.
+`);
+const readsFromOldStillCorrect = await verifyMigrationPlan(dir);
+check("migration: 'reads come from full_name' in the dual-write step still passes", readsFromOldStillCorrect.ok, readsFromOldStillCorrect.message);
+
+// Finding 7: same-release drop using qualified `users.full_name`-style
+// names - the dot-masking fix must not let the qualified name hide a real
+// same-release drop the way it un-hid the correct plans' phase detection.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add nullable users.first_name and users.last_name columns.
+2. Deploy dual-write so both users.full_name and the new columns are written.
+3. Backfill existing rows.
+## Release 2
+4. Switch reads to users.first_name and users.last_name.
+## Release 3
+5. Stop writing users.full_name and drop the users.full_name column.
+
+## Rollback
+Revert.
+`);
+const qualifiedSameReleaseDrop = await verifyMigrationPlan(dir);
+check("migration: qualified-name same-release drop still fails", !qualifiedSameReleaseDrop.ok, qualifiedSameReleaseDrop.message);
+
+// Finding 7: same-release drop where the DROP COLUMN itself is fenced SQL -
+// the fence-continuation fix must not let the fence hide a real
+// same-release drop the way it un-hid Opus's correct, later-release drop.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column, then run:
+
+\`\`\`sql
+ALTER TABLE users DROP COLUMN full_name;
+\`\`\`
+
+## Rollback
+Revert.
+`);
+const fencedSameReleaseDrop = await verifyMigrationPlan(dir);
+check("migration: fenced same-release drop still fails", !fencedSameReleaseDrop.ok, fencedSameReleaseDrop.message);
+
 // ---------- incident ----------
 rmSync(join(dir, "migration-plan.md"));
 check("incident: empty state fails", !(await verifyIncidentRunbook(dir)).ok);
@@ -208,6 +373,17 @@ rmSync(join(dir2, "migration-plan.md"));
 copyFileSync(join(import.meta.dirname, "fixtures", "gemini-migration-plan-business-rules.md"), join(dir2, "migration-plan.md"));
 const geminiReal = await verifyMigrationPlan(dir2);
 check("real Gemini plan (Business Rules numbered list) passes", geminiReal.ok, geminiReal.message);
+rmSync(join(dir2, "migration-plan.md"));
+
+// Produced by google/gemini-3.8-flash, second frontier-benchmark pass
+// (2026-09-26). Left as a FAIL in the first fix round: its write cutover
+// is stated only object-first ("Deploy Application Code with Old Writes
+// Removed", "Write Path: Exclusively first_name and last_name"), which the
+// verb-first stopWrite detector never matched. Fixed in round 2 by adding
+// that object-first form (finding 6 of the round-2 review).
+copyFileSync(join(import.meta.dirname, "fixtures", "gemini-migration-plan-object-first-stopwrite.md"), join(dir2, "migration-plan.md"));
+const geminiObjectFirst = await verifyMigrationPlan(dir2);
+check("real Gemini plan (object-first stop-write phrasing) passes", geminiObjectFirst.ok, geminiObjectFirst.message);
 rmSync(join(dir2, "migration-plan.md"));
 
 rmSync(dir2, { recursive: true, force: true });

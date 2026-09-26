@@ -47,6 +47,53 @@ check("a real compound instruction still fails", !compound.ok, compound.message)
 check("names the compound instruction", compound.message.includes("compound instruction"), compound.message);
 
 rmSync(join(dir, "runbook.md"));
+
+// ---------- fix round 2: negative controls for the narrowed compound check ----------
+// The determiner-requiring fix from round 1 ("and restart THE service")
+// rejected 6 of 7 real compound sentences a code review found, including
+// the code's own worked example ("Stop the consumer and restart it.").
+// Each sentence below is a genuine second command and must still fail,
+// however its object is phrased.
+const runbookWithStep = (sentence: string) => `# Restart a stuck consumer
+
+## Purpose
+
+Restore message processing for a consumer that stopped making progress.
+
+## Preconditions
+
+- Confirm the consumer lag is increasing.
+- Obtain access to the deployment console.
+
+## Steps
+
+1. ${sentence}
+2. Confirm the consumer resumes processing.
+3. Record the restart time.
+
+## Verification
+
+- Confirm the consumer offset advances.
+
+## Rollback
+
+- Restore the previous replica count if needed.
+`;
+const stillCompound = [
+  "Stop the affected message queue consumer and then restart the failing service.",
+  "Stop the affected message queue consumer service and restart it on the same node.",
+  "Stop the affected message queue consumer and wait for the pending messages to drain.",
+  "Stop the affected message queue consumer and restart all consumer pods in the namespace.",
+  "Stop the affected message queue consumer and restart consumers in the secondary region.",
+  "Scale the consumer deployment to zero replicas and delete stale lock files from disk.",
+];
+for (const sentence of stillCompound) {
+  put("runbook.md", runbookWithStep(sentence));
+  const r = await verifyStrictSTE(dir);
+  check(`still flags: "${sentence.slice(0, 60)}..."`, !r.ok && r.message.includes("compound instruction"), r.message);
+  rmSync(join(dir, "runbook.md"));
+}
+
 rmSync(dir, { recursive: true, force: true });
 
 // ---------- real model output as positive control ----------

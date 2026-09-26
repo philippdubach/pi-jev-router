@@ -46,7 +46,11 @@ export function parseSteps(text: string, untilHeading?: RegExp): Step[] {
   // its data-transformation rules 1-4 under such a heading, then starts the
   // real steps at "1" again under a "Release" heading, must not have the
   // rules counted as steps 1-4 that outrank the real ones.
-  const PREAMBLE = /^#{1,6}\s.*\b(invariants?|constraints?|assumptions?|overview|context|goals?|background|summary|ground rules?|business rules?|naming rules?|rules?|logic)\b/i;
+  // Bare "rules?|logic" is too wide: a real phase heading like "Release 2:
+  // read logic" or "Release 3: cutover rules" would also match and get its
+  // own steps skipped as preamble. Require one of the definitional nouns
+  // that name a data-transformation section, not a release phase.
+  const PREAMBLE = /^#{1,6}\s.*\b(invariants?|constraints?|assumptions?|overview|context|goals?|background|summary|ground rules?|(business|naming|splitting|parsing|transformation|integrity) (rules?|logic))\b/i;
   const STEP_HEADING = /^#{1,6}\s+(?:\*\*)?step\s+(\d+)\b[:.)]?\s*(.*)$/i;
   const headingLines = lines.map((l, i) => (/^#{1,6}\s/.test(l.trim()) ? i : -1)).filter((i) => i >= 0);
   const skip = new Set<number>();
@@ -164,9 +168,13 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
   const add = firstStep(steps, asAction(/\b(add|adds|adding|create|creates|introduce|introduces)\b/, /^[^.]{0,80}\b(columns?|fields?)\b/));
   const dualWrite = firstStep(steps, (t) =>
     // "write full_name, first_name, and last_name together" names all three
-    // columns instead of saying "both" or "all three"; "together" is the
-    // tell that it's one write, not a plain list of things a step touches.
-    /\b(dual[- ]?writ(e|es|ing)|write[s]? (to )?both|writ(e|es|ing) (both|all three|the new and|old and new)|additionally[^.]{0,30}\bwrit|writ(e|es|ing)\b[^.]{0,60}\btogether\b)/.test(t) &&
+    // columns instead of saying "both" or "all three"; "together" alone is
+    // not the tell, though - "writes first_name and last_name together on
+    // every save" only ever mentions the new columns, so it is a plain
+    // single-column-family write, not a dual-write. The word that matters is
+    // the OLD column: "together" only means dual-write when the old column
+    // (fullname, underscores are stripped above) appears in the same write.
+    /\b(dual[- ]?writ(e|es|ing)|write[s]? (to )?both|writ(e|es|ing) (both|all three|the new and|old and new)|additionally[^.]{0,30}\bwrit|writ(e|es|ing)\b[^.]{0,60}\bfullname\b[^.]{0,60}\btogether\b)/.test(t) &&
     !/\bwrite only\b[^.]{0,20}\bfull_name\b/.test(t));
   const backfillAsVerb = asAction(/\b(backfill|backfills)\b/, /^/, /^[^.]{0,4}\b(later|job)\b.*\b(will|to be)\b/);
   const backfillAsObject = asAction(/\b(run|runs|execute|executes|perform|performs|launch|launches|start|starts|kick off)\b/, /^[^.]{0,50}\b(backfill|existing rows|historical rows)\b/, /\b(caught|filled|handled|covered) by\b/);
@@ -177,16 +185,33 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
     if (/\bby (the |a )?backfill\b/.test(t) && !backfillAsObject(t) && !/^backfill/.test(t.replace(/^\([^)]*\)\s*/, ""))) return false;
     return backfillAsVerb(t) || backfillAsObject(t);
   });
-  const stopWrite = firstStep(steps, asAction(/\b(stop|stops|cease|ceases|remove|removes)\b/, /^[^.]{0,60}\b(writ(e|es|ing)|write path|populating)\b/));
+  const stopWriteVerbFirst = asAction(/\b(stop|stops|cease|ceases|remove|removes)\b/, /^[^.]{0,60}\b(writ(e|es|ing)|write path|populating)\b/);
+  const stopWrite = firstStep(steps, (t) =>
+    stopWriteVerbFirst(t) ||
+    sentences(t).some((sentence) =>
+      // Object-first forms: "Old Writes Removed" (a heading title puts the
+      // participle after its object) and "Write Path: Exclusively
+      // first_name and last_name" (states the write path is only the new
+      // columns, without an explicit "stop" verb). Both require the new
+      // column to actually appear, the same way the switch-reads object
+      // check does, so a step that merely mentions "write path" in passing
+      // isn't credited.
+      /\bwrit(e|es|ing)\b[^.]{0,20}\bremoved\b/.test(sentence) ||
+      /\bwrite path\b[^.]{0,20}\bexclusively\b[^.]{0,20}\b(firstname|lastname|new columns?)\b/.test(sentence),
+    ));
   const drop = firstStep(steps, asAction(
     /\b(drop|drops|delete|deletes|remove|removes)\b/,
     /^[^.]{0,60}\b(columns?|fields?)\b/,
-    // "Remove the column from the ORM model" (or schema cache, or its
-    // ignored_columns list) stops the application referencing a column
-    // that is still in the database; it is the same-release step that
-    // stops writing, told from the model's side, not the DROP COLUMN
-    // migration. Only the database-level removal counts as the drop.
-    /^[^.]{0,20}\bfrom\b[^.]{0,40}\b(write|read) path\b|\b(orm|schema cache|ignored_?columns)\b/,
+    // "Remove the column from the ORM model" (or schema cache) stops the
+    // application referencing a column that is still in the database; it
+    // is the same-release step that stops writing, told from the model's
+    // side, not the DROP COLUMN migration. This must be anchored the same
+    // way as the write/read-path alternative: unanchored, "orm" anywhere in
+    // the object window also rejects a real drop that merely *mentions* the
+    // ORM elsewhere in the same sentence ("Drop the column and remove it
+    // from the ORM model" - a real, same-sentence drop - would be rejected
+    // outright, hiding a same-release drop instead of catching it).
+    /^[^.]{0,20}\bfrom\b[^.]{0,40}\b(write|read) path\b|^[^.]{0,30}\bfrom\b[^.]{0,30}\b(the )?(orm|model|schema cache)\b/,
   ));
   const switchRead = firstStep(steps, (t) =>
     sentences(t).some((sentence) =>
@@ -201,11 +226,17 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
        // `first_name` / `last_name`." or "Read path: read directly from
        // `first_name`." states the same fact without an explicit "switch"
        // verb before "read". Parens are allowed here since the reads being
-       // enumerated, not the verb, own this clause.
-       /\bread(s|ing)?\b(?:(?!\bwrit)[^.]){0,60}\b(use|uses|come from|comes from|target|targets|rely on|relies on|draw from|draws from|directly from|only from|exclusively from|now from)\b/.test(sentence) ||
+       // enumerated, not the verb, own this clause. The object must be
+       // checked: "reads from the replica use a snapshot" and "Reads come
+       // from full_name" both match the verb phrase but say nothing about
+       // switching to the new column (the second is the *old* column), so
+       // require first_name/last_name/"new column(s)" to actually follow.
+       /\bread(s|ing)?\b(?:(?!\bwrit)[^.]){0,60}\b(use|uses|come from|comes from|target|targets|rely on|relies on|draw from|draws from|directly from|only from|exclusively from|now from)\b[^.]{0,30}\b(firstname|lastname|new columns?)\b/.test(sentence) ||
        // Heading-style title case: "Read Path Switched", "Reads Switched
-       // Over" puts the verb after "read" instead of before it.
-       /\bread(s|ing)?\b[^.]{0,15}\bswitch(ed|es|ing)?\b/.test(sentence)) &&
+       // Over" puts the verb after "read" instead of before it. Same object
+       // requirement: a title alone that never names the new column is not
+       // enough to credit the switch.
+       /\bread(s|ing)?\b[^.]{0,15}\bswitch(ed|es|ing)?\b[^.]{0,30}\b(firstname|lastname|new columns?)\b/.test(sentence)) &&
       !/\b(still|unchanged|no (behaviou?r )?change|not (yet )?changed|continue[s]? to read)\b/.test(sentence)));
 
   if (process.env.PLAN_VERIFY_DEBUG) {

@@ -74,14 +74,34 @@ export async function verifyStrictSTE(workspaceDir: string): Promise<VerifyResul
   // consumer and restart it." A single imperative with a plain list object
   // ("Identify the queue, environment, and owning team.", "Obtain access to
   // the service manager and monitoring dashboard.") also contains "and", but
-  // it is one instruction with a multi-item object, not two commands. The
-  // tell is what follows "and": a second command's own object almost always
-  // takes a determiner ("and restart THE service", "and notify THE team"),
-  // while a trailing list item is just a noun phrase with nothing after it.
-  const AND_NEW_CLAUSE = /\band\s+[a-z]+\s+(the|a|an|its|their|his|her|your|our|this|that|these|those)\b/i;
-  const compound = sentences.filter(
-    (s) => /^[A-Z][a-z]+\b[^.]*\band\b\s+[a-z]+\b/.test(s) && wordCount(s) > 8 && AND_NEW_CLAUSE.test(s),
-  );
+  // it is one instruction with a multi-item object, not two commands.
+  //
+  // Default: any long sentence with "and" is a candidate compound (the
+  // original, permissive rule) - a requirement on what comes right after
+  // "and" turned out to reject most real compounds, since a second command
+  // is phrased too many ways ("and then X", "and X it", "and X all Y", "and
+  // X Y in Z") to pin down by shape. Instead, only two shapes are exempted,
+  // because they are provably a list rather than a second command: an
+  // Oxford-comma list ("A, B, and C" - at least two commas before this
+  // "and"), and a short (<=3 word) noun phrase that runs straight to the
+  // sentence's end with nothing further ("and monitoring dashboard.", "and
+  // restart count."). Both exemptions are overridden back to "compound"
+  // when the tail is unmistakably a second command: "and then <...>" (a
+  // temporal connective always introduces a second action) or "and <word>
+  // <pronoun>" (a second verb taking a pronoun object, "and restart it").
+  const AND_THEN = /\band\s+then\b/i;
+  const AND_PRONOUN_OBJECT = /\band\s+[a-z]+\s+(it|them|him|her|us|this|that|these|those)\b/i;
+  const AND_SHORT_NOUN_TAIL = /\band\s+[a-z]+(?:\s+[a-z]+){0,2}\W*$/i;
+  const isCompound = (s: string): boolean => {
+    if (!/^[A-Z][a-z]+\b[^.]*\band\b\s+[a-z]+\b/.test(s) || wordCount(s) <= 8) return false;
+    if (AND_THEN.test(s) || AND_PRONOUN_OBJECT.test(s)) return true;
+    const andIndex = s.search(/\band\b/i);
+    const commasBeforeAnd = (s.slice(0, andIndex).match(/,/g) || []).length;
+    if (commasBeforeAnd >= 2) return false; // Oxford-comma list: "A, B, and C"
+    if (AND_SHORT_NOUN_TAIL.test(s)) return false; // short noun phrase to the end
+    return true;
+  };
+  const compound = sentences.filter(isCompound);
   if (compound.length > 0) {
     errors.push(`${compound.length} compound instruction(s). First: "${compound[0].slice(0, 80)}"`);
   }
