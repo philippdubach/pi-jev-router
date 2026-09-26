@@ -51,6 +51,7 @@ token rather than plan limits. Enabling it changes the invoice, not the cost.
 /router           show status
 /router shadow    recommend only (default)
 /router auto      switch models per task
+/router auto --dry-run N   switch for N tasks, then return to shadow with a summary
 /router off       stop routing
 /router frontier  show the frontier for the last decision
 /router pin <id>  force a model

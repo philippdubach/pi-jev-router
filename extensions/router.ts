@@ -43,6 +43,13 @@ type Mode = "shadow" | "auto" | "off";
 
 export default function (pi: ExtensionAPI) {
   let mode: Mode = "shadow";
+  /**
+   * A bounded auto trial. The default stays shadow; `/router auto --dry-run N`
+   * switches models for the next N routed tasks, then returns to shadow and
+   * prints what was chosen and at what cost. A trial without a standing
+   * commitment is how the router earns the right to stay on.
+   */
+  let trial: { remaining: number; total: number; log: Array<{ objective: string; model: string; workKind: string; reason: string; costEst?: number }> } | undefined;
   let pinnedModelId: string | undefined; // explicit /router pin
   let manualPin: string | undefined;     // user's own /model change since last routing
   let sessionBudgetUsd: number | undefined;
@@ -77,7 +84,7 @@ export default function (pi: ExtensionAPI) {
   }
 
   const showStatus = (ctx: any) => {
-    const label = mode === "shadow" ? "SHADOW" : mode === "auto" ? "AUTO" : "OFF";
+    const label = mode === "shadow" ? "SHADOW" : mode === "auto" ? (trial ? `AUTO·dry ${trial.remaining}/${trial.total}` : "AUTO") : "OFF";
     const pin = pinnedModelId ? ` · pinned:${pinnedModelId}` : "";
     const budget = sessionBudgetUsd !== undefined ? ` · $${sessionSpendUsd.toFixed(4)}/$${sessionBudgetUsd}` : "";
     ctx.ui.setStatus(
@@ -212,6 +219,19 @@ export default function (pi: ExtensionAPI) {
     if (classification.usage?.cost) sessionSpendUsd += classification.usage.cost;
 
     lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched };
+
+    if (trial && mode === "auto" && switched) {
+      trial.log.push({ objective: event.prompt.replace(/\s+/g, " ").slice(0, 60), model: recommendation.modelId, workKind, reason: recommendation.reason, costEst: recommendation.cEst });
+      trial.remaining -= 1;
+      if (trial.remaining <= 0) {
+        const lines = trial.log.map((e, i) => `  ${i + 1}. [${e.workKind}] ${e.model} ($${(e.costEst ?? 0).toFixed(4)} est, ${e.reason}) — "${e.objective}"`);
+        const spend = trial.log.reduce((a, e) => a + (e.costEst ?? 0), 0);
+        mode = "shadow";
+        ctx.ui.notify(`jev-router: dry run of ${trial.total} task(s) complete, back to shadow. Estimated spend $${spend.toFixed(4)}.\n${lines.join("\n")}\nRun /router auto to keep it on, or /router auto --dry-run N for another trial.`, "info");
+        trial = undefined;
+        applyMode(ctx);
+      }
+    }
     record({
       taskId, mode, recommendation, classification,
       note: note ?? (switched ? "switched" : "shadow"),
@@ -390,12 +410,27 @@ export default function (pi: ExtensionAPI) {
           applyMode(ctx);
           ctx.ui.notify("jev-router: shadow mode (recommendations only)", "info");
           break;
-        case "auto":
-          mode = "auto";
+        case "auto": {
           manualPin = undefined;
+          const dry = parts.indexOf("--dry-run");
+          if (dry >= 0) {
+            const n = Number(parts[dry + 1]);
+            if (!Number.isInteger(n) || n < 1 || n > 50) {
+              ctx.ui.notify("usage: /router auto --dry-run <1-50>", "warning");
+              break;
+            }
+            trial = { remaining: n, total: n, log: [] };
+            mode = "auto";
+            applyMode(ctx);
+            ctx.ui.notify(`jev-router: dry run — will switch models for the next ${n} routed task(s), then return to shadow with a summary`, "warning");
+            break;
+          }
+          trial = undefined;
+          mode = "auto";
           applyMode(ctx);
           ctx.ui.notify("jev-router: auto mode — will switch models at task boundaries", "warning");
           break;
+        }
         case "off":
           mode = "off";
           applyMode(ctx);
