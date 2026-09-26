@@ -138,6 +138,10 @@ Workers dispatched via `dispatch_task` execute in isolated Git worktrees:
 - If `verifierCommand` passes (exit 0), changes merge cleanly into the repository.
 - If verification fails or aborts, the worktree is cleaned up without leaving dirty changes.
 
+## Ledger
+
+Each dispatch is recorded with its outcome: verified pass, verifier failed, worker error, handshake missing, or no verifier. Outcomes are recorded but not yet used as evidence. Environment failures cannot yet be separated from work failures, so outcomes cannot safely move a pick.
+
 ## Files
 
 - `src/classifier.ts` — Jev call. One request, five questions.

@@ -26,8 +26,23 @@ import { createWorktree, cleanupWorktree, mergeWorktree, type WorktreeSession } 
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { ROUTER_DIR } from "./paths.ts";
+import { record } from "./ledger.ts";
 
 const execAsync = promisify(exec);
+
+export type DispatchOutcome = "verified_pass" | "verifier_failed" | "worker_error" | "handshake_missing" | "no_verifier";
+
+/**
+ * What one dispatch ended as. Recorded, not yet read as evidence: five
+ * review workers were marked failed on 22 September by a verifier that also
+ * required an unrelated file to be clean. Environment failures must be
+ * separable before live outcomes can move a pick.
+ */
+export function dispatchOutcome(s: { workerOk: boolean; handshake: boolean; hasVerifier: boolean; verifiedPass: boolean }): DispatchOutcome {
+  if (!s.workerOk) return "worker_error";
+  if (s.hasVerifier) return s.verifiedPass ? "verified_pass" : "verifier_failed";
+  return s.handshake ? "no_verifier" : "handshake_missing";
+}
 
 export const TASK_DIR_ROOT = join(ROUTER_DIR, "tasks");
 
@@ -200,6 +215,12 @@ export async function dispatch(taskId: string, opts: DispatchOptions): Promise<D
   }
 
   const isSuccess = opts.verifierCommand ? verifiedPass : (result.ok && handshake);
+
+  record({
+    taskId, mode: "auto", recommendation, classification, workKind,
+    objective: task.objective, note: "dispatch",
+    dispatchOutcome: dispatchOutcome({ workerOk: result.ok, handshake, hasVerifier: !!opts.verifierCommand, verifiedPass }),
+  });
 
   return {
     ok: isSuccess,

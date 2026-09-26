@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { ROUTER_DIR } from "./paths.ts";
 import { LOADED_VERSION } from "./version.ts";
+import type { DispatchOutcome } from "./dispatch.ts";
 
 export const LEDGER_DIR = ROUTER_DIR;
 export const LEDGER_FILE = join(LEDGER_DIR, "decisions.jsonl");
@@ -48,6 +49,8 @@ export interface DecisionRecord {
   activeModel?: string;
   /** Session size in tokens when the decision was made. Replay needs it. */
   contextTokens?: number;
+  /** Outcome of the dispatch: whether verification passed, failed, or worker errored. */
+  dispatchOutcome?: DispatchOutcome;
 }
 
 /** Prompts can be long and can carry secrets; keep only a short head. */
