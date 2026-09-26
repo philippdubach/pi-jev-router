@@ -2,6 +2,7 @@
 import {
   inheritWorkKind, estimateTargetTokens, tokenizerFamily, isSameModel,
   CROSS_TOKENIZER_MARGIN,
+  isContinuation, continuationDecision,
 } from "../src/continuity.ts";
 
 let failed = 0;
@@ -51,5 +52,20 @@ check("non-positive tokens estimate to zero", estimateTargetTokens(0, from, to) 
 check("same model detected", isSameModel({ provider: "openrouter", id: "z-ai/glm-5.3-flash" }, { provider: "openrouter", id: "z-ai/glm-5.3-flash" }));
 check("different provider is a switch", !isSameModel({ provider: "openrouter", id: "gpt-5.5" }, { provider: "openai-codex", id: "gpt-5.5" }));
 check("no current model is a switch", !isSameModel(undefined, { provider: "openrouter", id: "x/y" }));
+
+// Bare continuations: skip the classifier and keep the last routed model.
+for (const p of ["continue", "Continue.", "go on", "keep going", "yes", "ok", "do it", "go ahead!"]) {
+  check(`continuation: "${p}"`, isContinuation(p));
+}
+for (const p of ["", "continue with the paper", "fix the failing test", "yes, but use sqlite instead"]) {
+  check(`not a continuation: "${p}"`, !isContinuation(p));
+}
+const routed = { workKind: "code" as const, recommendation: { modelId: "inclusionai/ling-3.0-flash", reason: "frontier_tangency" as const } };
+check("continuation keeps the last routed task", continuationDecision("continue", routed)?.recommendation.modelId === "inclusionai/ling-3.0-flash");
+check("kept decision says why", continuationDecision("continue", routed)?.recommendation.reason === "continuation");
+check("no previous task: classify normally", continuationDecision("continue", undefined) === undefined);
+const abstained = { workKind: "other" as const, recommendation: { modelId: "", reason: "brief_unclear" as const } };
+check("after an abstain: classify normally", continuationDecision("continue", abstained) === undefined);
+check("a new instruction: classify normally", continuationDecision("fix the failing test", routed) === undefined);
 
 process.exit(failed ? 1 : 0);

@@ -25,7 +25,7 @@ import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, DECOMPOSE
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
-import { estimateTargetTokens, inheritWorkKind, isSameModel } from "../src/continuity.ts";
+import { estimateTargetTokens, inheritWorkKind, isSameModel, continuationDecision, type RoutedTask } from "../src/continuity.ts";
 import {
   blockRoute,
   loadState,
@@ -66,6 +66,8 @@ export default function (pi: ExtensionAPI) {
   let lastRoutedVia: string | undefined;
   // Last work kind that was not `other`, for continuation prompts.
   let lastWorkKind: WorkKind | undefined;
+  // Last routed task (recommendation + work kind), for bare continuations.
+  let lastRouted: RoutedTask | undefined;
 
   let lastDecision:
     | { ts: string; recommendation: Recommendation; classification?: ClassificationResult; note?: string; switched?: boolean; activeModel?: string }
@@ -142,6 +144,27 @@ export default function (pi: ExtensionAPI) {
     if (event.streamingBehavior) return;
 
     const taskId = `t-${Date.now().toString(36)}`;
+
+    // A bare continuation ("continue", "go on", "yes") names no task of its
+    // own. Keep the model the previous task routed to and skip the Jev call
+    // entirely: nothing to classify, nothing to pay for.
+    const kept = manualPin ? undefined : continuationDecision(event.prompt, lastRouted);
+    if (kept) {
+      const activeModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+      lastDecision = { ts: new Date().toISOString(), recommendation: kept.recommendation, note: "continuation" };
+      record({
+        taskId, mode, recommendation: kept.recommendation,
+        note: "continuation: kept model, no classification",
+        objective: event.prompt, workKind: kept.workKind, reason: "continuation",
+        activeModel,
+      });
+      applyMode(ctx);
+      if (mode === "auto" && kept.workKind === "writing") {
+        return { systemPrompt: (event.systemPrompt ?? "") + WRITING_STYLE_DIRECTIVE };
+      }
+      return;
+    }
+
     // The classifier can only judge what it receives. Gather bounded session and
     // repository signals instead of sending the bare prompt.
     const collected = await collectContext(event.prompt, ctx.cwd, {
@@ -272,6 +295,7 @@ export default function (pi: ExtensionAPI) {
       reason: recommendation.reason,
       activeModel,
     });
+    if (recommendation.modelId) lastRouted = { recommendation, workKind };
     applyMode(ctx);
 
     const tier = workKind;

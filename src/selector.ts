@@ -89,7 +89,8 @@ export type RecommendationReason =
   | "relaxed_proven_gate"
   | "relaxed_reasoning"
   | "catalog_unavailable"
-  | "classifier_unavailable";
+  | "classifier_unavailable"
+  | "continuation";
 
 export interface Recommendation {
   modelId: string;

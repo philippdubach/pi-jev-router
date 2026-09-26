@@ -3,7 +3,7 @@
  *
  * Pure functions. The extension owns the state and passes it in.
  */
-import type { WorkKind } from "./selector.ts";
+import type { Recommendation, WorkKind } from "./selector.ts";
 
 /**
  * A continuation carries no task of its own. In a real five-day session the
@@ -69,4 +69,25 @@ export function isSameModel(
   target: { provider?: string; id?: string },
 ): boolean {
   return !!current && current.provider === target.provider && current.id === target.id;
+}
+
+/**
+ * A prompt that only says "go on". 90 of 151 recorded decisions classified
+ * as `unclear`, most of them prompts like these. Each paid for a Jev call
+ * and, in auto mode, could switch models in the middle of the work.
+ * Anything with more words than the keyword names new work and is classified.
+ */
+const CONTINUATION = /^(continue|go on|keep going|carry on|proceed|resume|next|yes|yep|ok|okay|do it|go ahead|please continue)[\s.!]*$/i;
+
+export function isContinuation(prompt: string): boolean {
+  return CONTINUATION.test(prompt.trim());
+}
+
+export interface RoutedTask { recommendation: Recommendation; workKind: WorkKind }
+
+/** The previous task's decision, kept, when this prompt only continues it. */
+export function continuationDecision(prompt: string, last: RoutedTask | undefined): RoutedTask | undefined {
+  if (!last || !isContinuation(prompt)) return undefined;
+  if (!last.recommendation.modelId || last.recommendation.reason === "brief_unclear") return undefined;
+  return { workKind: last.workKind, recommendation: { ...last.recommendation, reason: "continuation" } };
 }
