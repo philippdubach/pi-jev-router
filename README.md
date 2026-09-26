@@ -123,7 +123,9 @@ solved every code task correctly but needed 13, 7 and 6 turns, so its posterior
 fell below its catalog prior.
 
 Five tasks, three code and two non-code, each in an isolated workspace with an
-independent verifier. Last recorded run (`eval/results/`, 2026-09-20):
+independent verifier. Last recorded run (`eval/results/`, 2026-09-20).
+Superseded by the 26 September run below; the router no longer uses pinned
+routes or the knee.
 
 | Arm | Pass | Total cost | Cost per success |
 |---|---|---|---|
@@ -215,7 +217,7 @@ Each dispatch is recorded with its outcome: verified pass, verifier failed, work
 - `src/classifier.ts` — Jev call. One request, five questions.
 - `src/catalog.ts` — fetch, cache and normalise the OpenRouter catalog.
 - `src/evidence.ts` — per-model, per-work-kind statistics from `eval/results`.
-- `src/frontier.ts` — Pareto dominance, the knee point and the weighted fallback.
+- `src/frontier.ts` — Pareto dominance, the weighted value function that picks the model, and the knee point, which is reported for diagnostics.
 - `src/selector.ts` — scores models and selects one. Pure functions. No model calls.
 - `src/board.ts` — SQLite task state.
 - `src/dispatch.ts` — worker spawn and handshake.

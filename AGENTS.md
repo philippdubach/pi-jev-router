@@ -12,7 +12,7 @@ features outside this scope. Do not add a server, a dashboard, or an MCP layer.
 - `src/classifier.ts` calls Jev through OpenRouter. One batched request per task. Five questions: category, complexity, risk, brief, decompose.
 - `src/catalog.ts` fetches, caches and normalises the OpenRouter catalog. It owns every network call for model data.
 - `src/evidence.ts` aggregates `eval/results` into per-model, per-work-kind statistics.
-- `src/frontier.ts` computes Pareto dominance, the knee point, and the weighted fallback. Pure functions.
+- `src/frontier.ts` computes Pareto dominance, the weighted value function that picks the model, and the knee point, which is reported for diagnostics. Pure functions.
 - `src/selector.ts` scores models and selects one. Pure functions. No network calls. No file reads. The caller supplies the catalog and the evidence.
 - `src/board.ts` owns task state in SQLite. Transitions are compare-and-set. Only the acceptance path marks a task done.
 - `src/dispatch.ts` spawns isolated `pi --mode json -p` workers. Each worker gets a brief file, a nonce, and a summary handshake.
