@@ -147,39 +147,74 @@ function aaIndexFor(m: CatalogModel, kind: WorkKind): number | null {
   return m.aa.intelligence;
 }
 
-/** Raw quality signal per work kind. Writing uses EQ-Bench, not the AA index. */
-function rawQualityFor(m: CatalogModel, kind: WorkKind): number | null {
-  if (kind === "writing") return WRITING_ELO[m.id] ?? null;
-  return aaIndexFor(m, kind);
-}
-
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0.5;
   const idx = Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))));
   return sorted[idx];
 }
 
-/**
- * Normalised quality prior per model. Models without a benchmark entry receive
- * an optimistic prior so they can win low-risk work and earn evidence.
- */
-export function qualityPrior(catalog: CatalogModel[], kind: WorkKind): Map<string, number> {
+/** Min-max normalise one index across the catalog. Zero and missing are absent. */
+export function normalisedIndex(catalog: CatalogModel[], pick: (m: CatalogModel) => number | null): Map<string, number> {
   const raw = new Map<string, number>();
   for (const m of catalog) {
-    const v = rawQualityFor(m, kind);
+    const v = pick(m);
     if (v !== null && Number.isFinite(v) && v > 0) raw.set(m.id, v);
   }
   const values = [...raw.values()];
   const lo = values.length ? Math.min(...values) : 0;
-  const hi = values.length ? Math.max(...values) : 1;
-  const span = hi - lo || 1;
-  const normalised = new Map<string, number>();
-  for (const [id, v] of raw) normalised.set(id, (v - lo) / span);
-  const sorted = [...normalised.values()].sort((a, b) => a - b);
-  const optimistic = percentile(sorted, OPTIMISTIC_PERCENTILE);
+  const span = (values.length ? Math.max(...values) : 1) - lo || 1;
   const out = new Map<string, number>();
-  for (const m of catalog) out.set(m.id, normalised.get(m.id) ?? optimistic);
+  for (const [id, v] of raw) out.set(id, (v - lo) / span);
   return out;
+}
+
+export const MIN_CALIBRATION_MODELS = 3;
+
+/**
+ * Map rank priors onto the pass-rate scale.
+ *
+ * A measured model's quality is a pass rate. An unmeasured model's was a rank
+ * in the catalog. On one axis the two do not compare: Sonnet at 8 of 8 scored
+ * below an unmeasured model's rank, and gpt-6-sol, at Sonnet's price with a
+ * higher intelligence index, was dominated only because it had no runs.
+ * Fit pass rate against rank over the measured models and read every prior
+ * off that line. A negative slope clamps to zero, so every prior becomes the
+ * mean pass rate instead of an inverted ranking.
+ */
+export function calibrate(rank: Map<string, number>, evidence: EvidenceIndex, kind: WorkKind): Map<string, number> {
+  const pts: Array<[number, number]> = [];
+  for (const [id, kinds] of Object.entries(evidence)) {
+    const s = kinds[kind];
+    const r = rank.get(id);
+    if (s && s.runs >= PROVEN_RUNS && r !== undefined) pts.push([r, s.passes / s.runs]);
+  }
+  if (pts.length < MIN_CALIBRATION_MODELS) return rank;
+  const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+  const my = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  const sxx = pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0);
+  const sxy = pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0);
+  const b = sxx > 0 ? Math.max(0, sxy / sxx) : 0;
+  const a = my - b * mx;
+  const out = new Map<string, number>();
+  for (const [id, r] of rank) out.set(id, Math.min(0.99, Math.max(0.05, a + b * r)));
+  return out;
+}
+
+/**
+ * Quality prior per model. The kind's own index comes first. A model that
+ * lists it as zero (the newest frontier models list `coding: 0`) falls back
+ * to its intelligence rank rather than the optimistic median, which kept
+ * claude-opus-5.5 off the code frontier. With evidence, priors are calibrated.
+ */
+export function qualityPrior(catalog: CatalogModel[], kind: WorkKind, evidence?: EvidenceIndex): Map<string, number> {
+  const primary = kind === "writing"
+    ? normalisedIndex(catalog, (m) => WRITING_ELO[m.id] ?? null)
+    : normalisedIndex(catalog, (m) => aaIndexFor(m, kind));
+  const fallback = kind === "writing" ? new Map<string, number>() : normalisedIndex(catalog, (m) => m.aa?.intelligence ?? null);
+  const optimistic = percentile([...primary.values()].sort((a, b) => a - b), OPTIMISTIC_PERCENTILE);
+  const rank = new Map<string, number>();
+  for (const m of catalog) rank.set(m.id, primary.get(m.id) ?? fallback.get(m.id) ?? optimistic);
+  return evidence ? calibrate(rank, evidence, kind) : rank;
 }
 
 function needsReasoning(kind: WorkKind): boolean {
@@ -324,7 +359,7 @@ export function selectModel(
     return { modelId: FALLBACK_MODELS[kind], reason: "catalog_unavailable" };
   }
 
-  const priors = qualityPrior(catalog, kind);
+  const priors = qualityPrior(catalog, kind, evidence);
   const { prior: latPrior, present: latPresent } = latencySignal(evidence, kind);
 
   // The quality floor is relaxed last: a measured failure should outrank both
