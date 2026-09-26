@@ -4,13 +4,33 @@ Jev-classified model routing for pi.
 
 ## Model rules
 
-The router ranks the whole OpenRouter catalog for each task. It filters the
-catalog to models that fit the task, computes a Pareto frontier over quality,
-cost and latency, then picks the knee point. The knee is the frontier member
-farthest from the chord that joins the cheapest and dearest models. It needs no
-weights, so the pick follows the catalog and the recorded evidence on every
-task. A frontier too small or too flat for a knee falls back to a weighted value
-function.
+The router applies the role policy as an eligibility filter, then picks
+inside the eligible set by a weighted value function.
+
+- **Planning** — only models with an Artificial Analysis intelligence index
+  at or above 48.5 are eligible.
+- **Writing** — only OpenAI models are eligible, and only if they have a
+  measured writing Elo of at least 1760 or at least 3 measured writing runs.
+- **Code** — no role restriction. Every feasible model is eligible.
+
+Inside the eligible set, the router computes a Pareto frontier over quality,
+cost and latency, then scores each frontier member with a weighted value
+function: quality minus cost and latency, scaled by role and by task
+complexity (harder tasks weigh cost less). That score picks the model. The
+frontier's knee point — the member farthest from the chord joining the
+cheapest and dearest models — is still computed and reported, but only as a
+diagnostic; it no longer makes the pick, because it ignores the role and
+complexity weights.
+
+Bare continuations ("continue", "go on", "keep going", "yes", …) keep the
+current model and skip the classifier call. A continuation after an abstain
+or a pin classifies normally instead of keeping an empty pick.
+
+Hard tasks (complexity at or above 2) read a hard-suite evidence cell instead
+of the overall one, once enough hard runs exist. Quality priors — the
+Artificial Analysis rank for an unmeasured model, EQ-Bench Elo for writing —
+are calibrated onto the same scale as the measured pass rate, so a measured
+and an unmeasured model compare fairly.
 
 Quality blends recorded runs from `eval/results` with the Artificial Analysis
 index. Writing quality uses the EQ-Bench Creative Writing v3 Elo in
@@ -21,6 +41,12 @@ when they exist.
 
 There is one selection policy. `src/selector.ts` holds a small fallback table
 for the case where the catalog cannot be fetched and no frontier exists.
+
+Each ledger row records the loaded `routerVersion` and the `activeModel` that
+ran. `/router status` compares the loaded version against the version on
+disk and warns to restart pi when they differ. A long session also reloads
+the catalog and the evidence periodically, instead of holding them fixed for
+the life of the process.
 
 Writing tasks get STE and Humanizer rules. Code tasks run unit tests.
 Planning tasks get a structure check.
@@ -108,6 +134,48 @@ independent verifier. Last recorded run (`eval/results/`, 2026-09-20):
 The frontier arm sent all three code tasks to `z-ai/glm-5.3-flash`, planning to
 `anthropic/claude-sonnet-5` and writing to `openai/gpt-5.4-mini`. Classification
 overhead is excluded and five tasks do not establish a general saving rate.
+
+### Benchmark, 26 September 2026
+
+Pass counts by model and task kind (planning / hard code / writing):
+
+| Model | Planning | Hard code | Writing |
+|---|---|---|---|
+| `anthropic/claude-opus-5.5` | 4/4 | 10/10 | 2/2 |
+| `openai/gpt-6-sol` | 4/4 | 10/10 | 6/6 |
+| `google/gemini-3.8-flash` | 4/4 | 6/10 | 2/2 |
+| `openai/gpt-5.6-luna` | — | — | 4/4 |
+
+Total spend: $5.52. Seven rows across these runs were adjudicated: a human
+read the artifact and found it correct where a verifier rule rejected it on
+phrasing. See `eval/results/ADJUDICATIONS.md` for each row and the reason.
+
+### Replay, 26 September 2026
+
+`eval/replay.ts` replayed the 151-row ledger through the selector as built
+(147 rows classified, 4 skipped). Picks by kind:
+
+| Kind | Pick | Count |
+|---|---|---|
+| planning | `anthropic/claude-opus-5.5` | 1 |
+| planning | (abstain, confident clarify) | 5 |
+| code | `inclusionai/ling-3.0-flash` | 24 |
+| code | (abstain, confident clarify) | 16 |
+| writing | `openai/gpt-5.6-luna` | 10 |
+| writing | (abstain, confident clarify) | 1 |
+| other | `z-ai/glm-5.3-flash` | 24 |
+| other | (abstain, confident clarify) | 66 |
+
+Planning picks a top-tier model only, and writing picks an OpenAI model only,
+as the role policy requires. Every abstain is a confident `clarify` brief;
+no other row abstains. Code does not separate by complexity on this ledger:
+the pick is `inclusionai/ling-3.0-flash` from complexity 0.16 to 2.54. This
+matches the benchmark, not a bug in the pick: calibrated code quality spans
+only about 0.90 to 0.96 across measured models, and the hard-suite and
+overall evidence cells track closely, so the value function has little room
+to move the pick on complexity alone.
+
+Live trial: pending (run `/router auto --dry-run 5` after merge).
 
 ## Setup
 

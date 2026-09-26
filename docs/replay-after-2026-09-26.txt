@@ -1,0 +1,18 @@
+replayed 147, skipped 4, catalog 458
+
+code
+    24  inclusionai/ling-3.0-flash [frontier_tangency]
+    16  (abstain) [brief_unclear]
+
+writing
+    10  openai/gpt-5.6-luna [frontier_tangency]
+     1  (abstain) [brief_unclear]
+
+other
+    66  (abstain) [brief_unclear]
+    22  z-ai/glm-5.3-flash [frontier_tangency]
+     2  z-ai/glm-5.3-flash [relaxed_proven_gate]
+
+planning
+     5  (abstain) [brief_unclear]
+     1  anthropic/claude-opus-5.5 [frontier_tangency]
