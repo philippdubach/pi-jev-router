@@ -30,7 +30,7 @@
       "correct": true,
       "passed": true,
       "timedOut": false,
-      "verifierOutput": "Strict STE passed: 26 sentences, all <= 20 words, 9 imperative steps.",
+      "verifierOutput": "Strict STE failed:\n- 3 compound instruction(s). First: \"Identify the consumer deployment, queue, environment, and consumer group.\"",
       "latencyMs": 6915,
       "tokens": {
         "input": 6,
@@ -41,7 +41,7 @@
       },
       "costUsd": 0.03589730000000001,
       "turns": 2,
-      "rescored": "planning/hard verifier fixed 2026-09-26 (qualified-name dots, fenced DDL continuation, Business Rules preamble, compound-instruction false positive); artifact re-verified in place"
+      "adjudicated": "correct STE runbook: each step is one imperative; verifier rejects it because the compound-instruction rule flags every sentence of more than 8 words that contains \"and\", including one verb with an \"and\"-joined list object (\"Identify the consumer deployment, queue, environment, and consumer group.\"); see eval/results/ADJUDICATIONS.md"
     },
     {
       "taskId": "write_strict_ste",

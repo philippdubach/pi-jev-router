@@ -91,7 +91,7 @@
       },
       "costUsd": 0.0969888,
       "turns": 4,
-      "rescored": "planning/hard verifier fixed 2026-09-26 (qualified-name dots, fenced DDL continuation, Business Rules preamble, compound-instruction false positive); artifact re-verified in place"
+      "rescored": "planning verifier fixed 2026-09-26 (qualified-name dot masking, kept in the restored verifier); artifact re-verified in place"
     },
     {
       "taskId": "plan_incident_decomposition",
@@ -121,7 +121,7 @@
       "correct": true,
       "passed": true,
       "timedOut": false,
-      "verifierOutput": "Migration plan passed: 14 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "verifierOutput": "Migration plan failed:\n- No step switches reads to the new column.\n- No step stops writing the old column.\n- Dual-write appears before the column exists.",
       "latencyMs": 125422,
       "tokens": {
         "input": 51288,
@@ -132,7 +132,7 @@
       },
       "costUsd": 0.105138825,
       "turns": 8,
-      "rescored": "planning verifier narrowed 2026-09-26 (fix round 2: object-first stop-write form added for heading-title / write-path-exclusively phrasing; artifact re-verified in place)"
+      "adjudicated": "correct expand-contract plan: add and dual-write (Release 1), backfill (after Release 1), switch reads (Release 2), stop writes (Release 3), drop (Release 4); verifier rejects it because the switch-read and stop-write rules match only verb-first forms, and the plan states them object-first (\"Read Path: Read directly from first_name\", \"with Old Writes Removed\"); the preamble rule also does not skip the \"Name Parsing & Data Integrity Rules\" list; see eval/results/ADJUDICATIONS.md"
     },
     {
       "taskId": "plan_incident_decomposition",

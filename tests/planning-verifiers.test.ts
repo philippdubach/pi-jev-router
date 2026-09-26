@@ -100,16 +100,16 @@ Revert the release.
 const tricky = await verifyMigrationPlan(dir);
 check("migration: write-path step mentioning reads is not the switch", tricky.ok, tricky.message);
 
-// ---------- fix round 2: negative controls the broadened detectors let through ----------
-// A code-review pass on the 2026-09-26 fixes above found five of them wider
-// than the bugs they fixed, each one letting a genuinely wrong plan pass.
-// Every plan below is wrong and must still fail after the narrowing fix.
+// ---------- review probes, 2026-09-26 ----------
+// Code reviews of the Task 9 verifier changes wrote these plans. Each wrong
+// plan must fail. The verifier is the pre-Task-9 logic plus two parsing
+// fixes (qualified-name dots, fenced code blocks), per ruling R14.
 const CTX = `## Context
 Two releases run side by side during every deploy, so each step must keep working while the previous release serves traffic.
 `;
 
-// Finding 1: "write X and Y together" without the old column present is not
-// a dual-write - it only ever mentions the new columns.
+// Finding 1: "write X and Y together" does not name the old column. It is
+// not a dual-write.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1
@@ -129,8 +129,8 @@ Revert.
 const togetherNoOld = await verifyMigrationPlan(dir);
 check("migration: 'together' without the old column is not dual-write", !togetherNoOld.ok, togetherNoOld.message);
 
-// Finding 2: same-release drop, phrased so the drop sentence also mentions
-// the ORM. An unanchored ORM reject would hide this real same-release drop.
+// Finding 2: a same-release drop. The drop sentence also names the ORM.
+// The plan must fail.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1
@@ -151,9 +151,8 @@ Revert.
 const ormSameReleaseDrop = await verifyMigrationPlan(dir);
 check("migration: drop mentioning the ORM in the same sentence still same-release-fails", !ormSameReleaseDrop.ok, ormSameReleaseDrop.message);
 
-// Finding 3: a real release-phase heading that happens to say "logic" must
-// not be swallowed as a definitional preamble - its own step (an early,
-// wrong read switch) must still be read and still fail the order check.
+// Finding 3: a release heading that contains "logic". Its step (an early
+// read switch) must count, and the order check must fail.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1: expand
@@ -176,9 +175,9 @@ const logicHeading = await verifyMigrationPlan(dir);
 check("migration: a 'read logic' release heading is not a preamble skip", !logicHeading.ok, logicHeading.message);
 check("migration: still names the early-switch order violation", logicHeading.message.includes("before the backfill"), logicHeading.message);
 
-// Finding 4: writes stop before reads switch (wrong order), with a spurious
-// "reads ... use a snapshot" sentence in the backfill step that must not be
-// read as switching reads to the new column (it names no new column at all).
+// Finding 4: writes stop before reads switch (wrong order). The backfill
+// step also says "reads ... use a snapshot". That sentence names no new
+// column, so it is not a read switch.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1
@@ -199,9 +198,9 @@ const stopBeforeSwitch = await verifyMigrationPlan(dir);
 check("migration: stop-write before switch-reads still fails", !stopBeforeSwitch.ok, stopBeforeSwitch.message);
 check("migration: names the write-before-switch order violation", stopBeforeSwitch.message.includes("reads still come from it"), stopBeforeSwitch.message);
 
-// Positive control for finding 4: a correct plan whose dual-write step says
-// "Reads come from full_name" (the OLD column) must still pass - the
-// read-first switchRead form must not treat this as switching reads.
+// Positive control for finding 4: a correct plan. Its dual-write step says
+// "Reads come from full_name" (the old column). That is not a read switch,
+// so the plan must pass.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1
@@ -221,9 +220,8 @@ Revert.
 const readsFromOldStillCorrect = await verifyMigrationPlan(dir);
 check("migration: 'reads come from full_name' in the dual-write step still passes", readsFromOldStillCorrect.ok, readsFromOldStillCorrect.message);
 
-// Finding 7: same-release drop using qualified `users.full_name`-style
-// names - the dot-masking fix must not let the qualified name hide a real
-// same-release drop the way it un-hid the correct plans' phase detection.
+// Negative control for the dot fix: a same-release drop with qualified
+// `users.full_name` names. The dot fix must not hide the drop.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1
@@ -240,10 +238,10 @@ Revert.
 `);
 const qualifiedSameReleaseDrop = await verifyMigrationPlan(dir);
 check("migration: qualified-name same-release drop still fails", !qualifiedSameReleaseDrop.ok, qualifiedSameReleaseDrop.message);
+check("migration: qualified-name same-release drop names the release boundary", qualifiedSameReleaseDrop.message.includes("same release"), qualifiedSameReleaseDrop.message);
 
-// Finding 7: same-release drop where the DROP COLUMN itself is fenced SQL -
-// the fence-continuation fix must not let the fence hide a real
-// same-release drop the way it un-hid Opus's correct, later-release drop.
+// Negative control for the fence fix: a same-release drop. The DROP
+// COLUMN is in a fenced SQL block. The fence fix must not hide the drop.
 put("migration-plan.md", `# Plan
 ${CTX}
 ## Release 1
@@ -264,6 +262,55 @@ Revert.
 `);
 const fencedSameReleaseDrop = await verifyMigrationPlan(dir);
 check("migration: fenced same-release drop still fails", !fencedSameReleaseDrop.ok, fencedSameReleaseDrop.message);
+check("migration: fenced same-release drop names the release boundary", fencedSameReleaseDrop.message.includes("same release"), fencedSameReleaseDrop.message);
+
+// Positive control for the dot fix: a correct plan that uses qualified
+// names. Without the fix, the "." in "users.first_name" stops the add
+// detector before it reaches "columns".
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add nullable users.first_name and users.last_name columns.
+2. Deploy dual-write so both users.full_name and the new columns are written.
+3. Backfill existing rows from users.full_name in batches.
+## Release 2
+4. Switch reads to users.first_name and users.last_name.
+## Release 3
+5. Stop writing users.full_name.
+## Release 4
+6. Drop the users.full_name column.
+
+## Rollback
+Revert.
+`);
+const qualifiedCorrect = await verifyMigrationPlan(dir);
+check("migration: correct plan with users.full_name qualified names passes", qualifiedCorrect.ok, qualifiedCorrect.message);
+
+// Positive control for the fence fix: a correct plan whose only DROP
+// COLUMN is in a fenced block, in a later release. Without the fix, the
+// fence ends the step and the plan has no drop step.
+put("migration-plan.md", `# Plan
+${CTX}
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Run the contract migration:
+
+\`\`\`sql
+ALTER TABLE users DROP COLUMN full_name;
+\`\`\`
+
+## Rollback
+Revert.
+`);
+const fencedCorrect = await verifyMigrationPlan(dir);
+check("migration: correct plan with a fenced DROP COLUMN in a later release passes", fencedCorrect.ok, fencedCorrect.message);
 
 // ---------- incident ----------
 rmSync(join(dir, "migration-plan.md"));
@@ -352,48 +399,55 @@ check("real Sonnet incident runbook passes", realInc.ok, realInc.message);
 rmSync(join(dir2, "incident-runbook.md"));
 
 // ---------- real frontier-model output, measured 2026-09-26 ----------
-// Three plans from the Task 9 frontier benchmark that the first pass of
-// this run's verifier rejected. Each rejection was a verifier bug, not a
-// bad plan: a qualified reference's "." (`users.full_name`) broke the
-// same-sentence "[^.]" windows several detectors use, a fenced DDL block's
-// upper-case SQL broke the plain-paragraph continuation heuristic so the
-// real DROP COLUMN step lost its text, and a "Business Rules" heading
-// wasn't recognised as preamble so its own numbered list of naming rules
-// was read as steps 1-4, ahead of the real ones.
-copyFileSync(join(import.meta.dirname, "fixtures", "opus-migration-plan-fenced-drop.md"), join(dir2, "migration-plan.md"));
-const opusReal = await verifyMigrationPlan(dir2);
-check("real Opus plan (fenced DROP COLUMN) passes", opusReal.ok, opusReal.message);
+// Each plan is a real Task 9 benchmark artifact, and a human review found
+// each one correct.
+//
+// This plan is a positive control for the dot fix. It is gpt-6-sol's
+// second plan_expand_contract run. It uses `users.full_name` qualified
+// names. The verifier passes it only with the dot fix.
+copyFileSync(join(import.meta.dirname, "fixtures", "gpt6sol-migration-plan-qualified-names-2.md"), join(dir2, "migration-plan.md"));
+const gpt6solReal2 = await verifyMigrationPlan(dir2);
+check("real gpt-6-sol plan 2 (users.full_name qualified names) passes", gpt6solReal2.ok, gpt6solReal2.message);
 rmSync(join(dir2, "migration-plan.md"));
 
-copyFileSync(join(import.meta.dirname, "fixtures", "gpt6sol-migration-plan-qualified-names.md"), join(dir2, "migration-plan.md"));
-const gpt6solReal = await verifyMigrationPlan(dir2);
-check("real gpt-6-sol plan (users.full_name qualified names) passes", gpt6solReal.ok, gpt6solReal.message);
-rmSync(join(dir2, "migration-plan.md"));
-
-copyFileSync(join(import.meta.dirname, "fixtures", "gemini-migration-plan-business-rules.md"), join(dir2, "migration-plan.md"));
-const geminiReal = await verifyMigrationPlan(dir2);
-check("real Gemini plan (Business Rules numbered list) passes", geminiReal.ok, geminiReal.message);
-rmSync(join(dir2, "migration-plan.md"));
-
-// Produced by google/gemini-3.8-flash, second frontier-benchmark pass
-// (2026-09-26). Left as a FAIL in the first fix round: its write cutover
-// is stated only object-first ("Deploy Application Code with Old Writes
-// Removed", "Write Path: Exclusively first_name and last_name"), which the
-// verb-first stopWrite detector never matched. Fixed in round 2 by adding
-// that object-first form (finding 6 of the round-2 review).
-copyFileSync(join(import.meta.dirname, "fixtures", "gemini-migration-plan-object-first-stopwrite.md"), join(dir2, "migration-plan.md"));
-const geminiObjectFirst = await verifyMigrationPlan(dir2);
-check("real Gemini plan (object-first stop-write phrasing) passes", geminiObjectFirst.ok, geminiObjectFirst.message);
-rmSync(join(dir2, "migration-plan.md"));
+// The verifier rejects the four plans below. The verifier is not made
+// looser to accept them: a false FAIL is better than a false PASS (ruling
+// R14). Each test records the verdict that the verifier gives now.
+const adjudicatedPlans: Array<[string, string]> = [
+  // Opus pass 1. The verifier reads the Step 0 inventory ("reads in
+  // Release 3, writes in Release 4") as the read switch, before the
+  // backfill. It also reads "remove the column from the ORM model"
+  // (Release 4, with the write stop) as the drop. The real DROP COLUMN is
+  // in Release 5.
+  ["opus-migration-plan-fenced-drop.md", "real Opus plan (fenced DROP COLUMN)"],
+  // gpt-6-sol pass 1. The dual-write step says "write full_name,
+  // first_name, and last_name together". The verifier does not know this
+  // form, so it takes a later step as the dual-write.
+  ["gpt6sol-migration-plan-qualified-names.md", "real gpt-6-sol plan (users.full_name qualified names)"],
+  // Gemini pass 1. The verifier reads the numbered list under the
+  // "Business Rules" heading as steps. Its dual-write rule then comes
+  // before the step that adds the column.
+  ["gemini-migration-plan-business-rules.md", "real Gemini plan (Business Rules numbered list)"],
+  // Gemini pass 2. The read switch and the write stop are object-first
+  // ("Read Path: Read directly from first_name", "with Old Writes
+  // Removed"). The verifier knows only verb-first forms. It also reads the
+  // "Data Integrity Rules" list as steps.
+  ["gemini-migration-plan-object-first-stopwrite.md", "real Gemini plan (object-first stop-write phrasing)"],
+];
+for (const [file, name] of adjudicatedPlans) {
+  // correct plan; verifier too strict; adjudicated PASS in results — see ADJUDICATIONS.md
+  copyFileSync(join(import.meta.dirname, "fixtures", file), join(dir2, "migration-plan.md"));
+  const r = await verifyMigrationPlan(dir2);
+  check(`${name}: verifier rejects it (adjudicated)`, !r.ok, r.message);
+  rmSync(join(dir2, "migration-plan.md"));
+}
 
 rmSync(dir2, { recursive: true, force: true });
 
-// ---------- fix round 3: every probe sentence from the round-2 re-review ----------
-// Controller ruling R12: every probe sentence from both code-review passes
-// becomes a committed test. These are the round-2 re-review's cases
-// (mined from t9r2/probes.ts): findings 2, 3 and 6 were not actually fixed
-// by round 2's changes, and round 2 introduced a new hole in finding 4 (a
-// correct plan wrongly failing) alongside the one it closed.
+// ---------- probes from the second review (t9r2/probes.ts) ----------
+// Ruling R12: every review probe is a committed test. A wrong plan must
+// fail. A correct plan that the verifier rejects is marked "verifier too
+// strict" and records the FAIL (ruling R14).
 const R1_SETUP = `## Release 1
 1. Add the new columns first_name and last_name as nullable.
 2. Deploy code that dual-writes both old and new columns.
@@ -403,8 +457,8 @@ const R1_SETUP = `## Release 1
 `;
 const wrapR3 = (body: string) => `# Plan\n${CTX}\n${body}\n## Rollback\nRevert.\n`;
 const r3Cases: Array<[string, boolean, string]> = [
-  // Finding 2: same-release drop, various ORM phrasings. Each must still
-  // fail even though the drop sentence also mentions the ORM.
+  // Finding 2: same-release drops. Each drop sentence also names the ORM.
+  // Each plan must fail.
   ["F2: 'Drop the column and remove it from the ORM model.' same release", false, wrapR3(`${R1_SETUP}## Release 3
 5. Stop writing to the old full_name column.
 6. Drop the column and remove it from the ORM model.
@@ -424,9 +478,9 @@ const r3Cases: Array<[string, boolean, string]> = [
 5. Stop writing to the old full_name column, remove it from the users model and drop the column.
 ## Release 4
 6. Drop the leftover index on the old column.`)],
-  // Finding 3: a release-phase heading that happens to say "business
-  // logic" / "data integrity rules" is never a preamble - its own step (an
-  // early, wrong read switch) must still be read and still fail.
+  // Finding 3: release headings that contain "business logic" or
+  // "integrity rules". The step below each one (an early read switch) must
+  // count, and the plan must fail.
   ["F3: '## Release 2: business logic' heading hides early switch", false, wrapR3(`## Release 1: expand
 1. Add the new columns first_name and last_name as nullable.
 2. Deploy code that dual-writes both old and new columns.
@@ -463,8 +517,8 @@ const r3Cases: Array<[string, boolean, string]> = [
 6. Stop writing to the old full_name column.
 ## Release 5
 7. Drop the old column full_name.`)],
-  // Finding 6: object-first stopWrite forms need a negation guard and a
-  // real object - neither of these describes an actual write cutover.
+  // Finding 6: none of these sentences stops the old writes. Each plan
+  // has no stop-write step and must fail.
   ["F6: negated 'old writes are not removed yet' is not credited as stop-write", false, wrapR3(`${R1_SETUP}## Release 3
 5. Monitor for a week; old writes are not removed yet.
 ## Release 4
@@ -477,8 +531,8 @@ const r3Cases: Array<[string, boolean, string]> = [
 5. Keep the dual write: the write path is not exclusively first_name and last_name yet.
 ## Release 4
 6. Drop the old column full_name.`)],
-  // Minor: "together" must not cross a "parsed FROM full_name" source
-  // reference to reach a write it never actually performs.
+  // Minor: "parsed from full_name" names the source of the data. The step
+  // does not write full_name, so it is not a dual-write.
   ["minor: 'writes ... parsed from full_name, together' is not dual-write", false, wrapR3(`## Release 1
 1. Add the new columns first_name and last_name as nullable.
 2. Deploy code that writes first_name and last_name, parsed from full_name, together on every save.
@@ -489,10 +543,8 @@ const r3Cases: Array<[string, boolean, string]> = [
 5. Stop writing to the old full_name column.
 ## Release 4
 6. Drop the old column full_name.`)],
-  // Finding 4 (new hole introduced by round 2): a correct plan's dual-write
-  // step must still pass when it mentions the old column as the read
-  // source in a different clause, and a heading-style read-switch with the
-  // verb after "read" must still be credited.
+  // Finding 4: a correct plan's dual-write step may name the old column as
+  // the read source. That is not a read switch.
   ["F4: correct plan, 'Reads use full_name while first_name and last_name fill in' still passes", true, wrapR3(`## Release 1
 1. Add the new columns first_name and last_name as nullable.
 2. Deploy code that dual-writes both old and new columns. Reads use full_name while first_name and last_name fill in.
@@ -503,7 +555,9 @@ const r3Cases: Array<[string, boolean, string]> = [
 5. Stop writing to the old full_name column.
 ## Release 4
 6. Drop the old column full_name.`)],
-  ["F4: correct plan, 'Read path switched to first_name' heading style still passes", true, wrapR3(`## Release 1
+  // Correct plan; verifier too strict. The verifier does not know the
+  // object-first form "read path switched to". It records FAIL.
+  ["F4: correct plan, 'Read path switched to first_name' (verifier too strict, FAIL)", false, wrapR3(`## Release 1
 1. Add the new columns first_name and last_name as nullable.
 2. Deploy code that dual-writes both old and new columns.
 3. Backfill existing rows from full_name.
@@ -513,8 +567,9 @@ const r3Cases: Array<[string, boolean, string]> = [
 5. Stop writing to the old full_name column.
 ## Release 4
 6. Drop the old column full_name.`)],
-  // Finding 3 positive control: a genuine "## Business Logic" definitional
-  // section (no release/phase word) must stay a preamble skip.
+  // Finding 3 positive control: a correct plan with a "## Business Logic"
+  // section first. The verifier reads that list as steps, but the items
+  // match no phase, so the plan passes.
   ["F3: correct plan, '## Business Logic' definitional section still passes", true, `# Plan
 ## Business Logic
 1. Split on the last space.
@@ -533,15 +588,7 @@ for (const [name, wantOk, text] of r3Cases) {
   rmSync(dir3, { recursive: true, force: true });
 }
 
-// ---------- fix round 4: structural rewrite (controller ruling R13) ----------
-// Round 3's narrowing still let fresh paraphrases through (findings 2, 3, 5,
-// 6 of the round-3 re-review), and closing each with another keyword or gap
-// tweak was a paraphrase hunt with no end. R13: implement the reviewer's
-// structural rules instead - PREAMBLE by position (before the first
-// release/phase/step-numbered heading, not by heading keyword), drop scoped
-// to the column itself with a database-aware ORM reject, stop-write forms
-// anchored to the real label/title shapes, dual-write "together" requiring
-// fullname as an immediate write target. Every probe from t9r3/plan.ts.
+// ---------- probes from the third review (t9r3/plan.ts) ----------
 const R1B = `## Release 1
 1. Add the new columns first_name and last_name as nullable.
 2. Deploy code that dual-writes both old and new columns.
@@ -650,7 +697,10 @@ Revert.
 ## Rollback
 Revert.
 `],
-  ["correct (r4): stop-write step also removes from ORM model still passes", true, wrapR3(`${R1B}## Release 3
+  // Correct plan; verifier too strict. The verifier reads "remove the
+  // column from the ORM model" as the drop, in the same release as the
+  // write stop. It records FAIL.
+  ["correct (r4): stop-write step also removes from ORM model (verifier too strict, FAIL)", false, wrapR3(`${R1B}## Release 3
 5. Stop writing to the old full_name column and remove the column from the ORM model.
 ## Release 4
 6. Drop the old column full_name.`)],
@@ -663,7 +713,7 @@ for (const [name, wantOk, text] of r4Cases) {
   rmSync(dir4, { recursive: true, force: true });
 }
 
-// ---------- R12 coverage: the three round-1 (t9/b2.ts) probes never committed ----------
+// ---------- probes from the first review (t9/b2.ts) ----------
 const dir5 = mkdtempSync(join(tmpdir(), "plan-verify-r1missing-"));
 writeFileSync(join(dir5, "migration-plan.md"), `# Plan
 
@@ -719,5 +769,211 @@ Revert the release and keep the old column in place until the next deploy is saf
 const r1MissingC = await verifyMigrationPlan(dir5);
 check("R12 coverage: together_natural (t9/b2.ts)", !r1MissingC.ok, r1MissingC.message);
 rmSync(dir5, { recursive: true, force: true });
+
+// ---------- probes from the fourth review (t9r4/plan4.ts, t9r4/inc.ts) ----------
+const DECOY_R4 = `## Release 4
+7. Delete the leftover trigger on the old column.`;
+const sameRelDecoy = (s: string) => wrapR3(`${R1B}## Release 3
+5. Stop writing to the old full_name column.
+6. ${s}
+${DECOY_R4}`);
+const r5Cases: Array<[string, boolean, string]> = [
+  ["r5 A: 'Release N' headings; the Invariants list is not the dual-write", false, `# Plan
+## Invariants
+1. Add columns as nullable before any code writes them.
+2. Dual-write old and new columns until reads switch.
+## Release N
+3. Add the new columns first_name and last_name as nullable.
+4. Backfill existing rows from full_name.
+## Release N+1
+5. Switch reads to first_name and last_name.
+## Release N+2
+6. Stop writing to the old full_name column.
+## Release N+3
+7. Drop the old column full_name.
+
+## Rollback
+Revert.
+`],
+  ["r5 A: phase headings; the Constraints list is not the dual-write", false, `# Plan
+## Constraints
+1. Add columns as nullable before any code writes them.
+2. Dual-write old and new columns until reads switch.
+## Expand phase
+3. Add the new columns first_name and last_name as nullable.
+4. Backfill existing rows from full_name.
+## Migrate phase
+5. Switch reads to first_name and last_name.
+6. Stop writing to the old full_name column.
+## Contract phase (next deploy)
+7. Drop the old column full_name.
+
+## Rollback
+Revert.
+`],
+  ["r5 A: early read switch under an un-numbered first heading", false, wrapR3(`## Initial deploy
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Switch reads to first_name and last_name.
+## Release 2
+4. Add NOT NULL-ready check constraints for the new columns.
+5. Keep dual-writing both old and new columns.
+6. Backfill existing rows from full_name.
+7. Confirm all reads use first_name and last_name.
+## Release 3
+8. Stop writing to the old full_name column.
+## Release 4
+9. Drop the old column full_name.`)],
+  ["r5 A: correct plan, '### Release 2 rollback' in the Rollback section", true, `# Plan
+${CTX}
+## Steps
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+4. Switch reads to first_name and last_name.
+5. Stop writing to the old full_name column.
+6. In a later release, drop the old column full_name.
+
+## Rollback
+### Release 2 rollback
+Revert the read switch.
+`],
+  ["r5 A: correct plan, un-numbered phase headings and a 'Phase 2' notes heading", true, `# Plan
+${CTX}
+## Expand
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Migrate (next release)
+4. Switch reads to first_name and last_name.
+## Contract (next release)
+5. Stop writing to the old full_name column.
+## Cleanup release
+6. Drop the old column full_name in a later release.
+## Monitoring for Phase 2
+Watch error rates.
+
+## Rollback
+Revert.
+`],
+  ["r5 B: same-release 'Drop the index and the full_name column.'", false, sameRelDecoy("Drop the index and the full_name column.")],
+  ["r5 B: same-release 'Drop the unique constraint and then the full_name column.'", false, sameRelDecoy("Drop the unique constraint and then the full_name column.")],
+  ["r5 B: same-release 'Drop the key column full_name.'", false, sameRelDecoy("Drop the key column full_name.")],
+  // Correct plan; verifier too strict. The drop object must contain
+  // "column" or "field". "Drop full_name" has neither. It records FAIL.
+  ["r5 B: correct plan 'Drop full_name and its index.' (verifier too strict, FAIL)", false, wrapR3(`${R1B}## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop full_name and its index.`)],
+  ["r5 C: 'Prepare the Release 4 build with old writes removed.' is not a stop-write", false, wrapR3(`${R1B}## Release 3
+5. Prepare the Release 4 build with old writes removed.
+## Release 4
+6. Deploy the Release 4 build and drop the old column full_name.`)],
+  ["r5 C: 'write path: exclusively first_name' as a target state is not a stop-write", false, wrapR3(`${R1B}## Release 3
+5. Target state for Release 4 - write path: exclusively first_name and last_name.
+## Release 4
+6. Deploy that change and drop the old column full_name.`)],
+  ["r5 E: 'writes every field except full_name together' is not a dual-write", false, wrapR3(`## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes every field except full_name together in one transaction.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)],
+  ["r5 E: 'writes to first_name, not full_name, together' is not a dual-write", false, wrapR3(`## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes to first_name, not full_name, together with last_name.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)],
+  // Correct plan; verifier too strict. The verifier does not know the
+  // "write full_name, first_name, and last_name together" form. It records
+  // FAIL. The real gpt-6-sol plan 1 above fails for the same reason.
+  ["r5 E: correct 'writes full_name, first_name, and last_name together' (verifier too strict, FAIL)", false, wrapR3(`## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes full_name, first_name, and last_name together.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.`)],
+];
+for (const [name, wantOk, text] of r5Cases) {
+  const d = mkdtempSync(join(tmpdir(), "plan-verify-r5-"));
+  writeFileSync(join(d, "migration-plan.md"), text);
+  const r = await verifyMigrationPlan(d);
+  check(name, r.ok === wantOk, r.message);
+  rmSync(d, { recursive: true, force: true });
+}
+
+const incR5Cases: Array<[string, boolean, string]> = [
+  ["r5 incident: cache warmed before the database check, in an un-numbered first section", false, `# Incident: multi-system outage
+
+## Immediate actions
+1. Warm the cache from the last snapshot. Owner: on-call SRE
+2. Declare the incident and open the bridge. Owner: incident commander
+
+## Phase 2: recovery
+3. Confirm the database is healthy and accepting connections. Owner: DBA
+4. Drain the queue backlog once the database is healthy. Owner: platform engineer
+5. Re-enable the api gateway routes. Owner: network engineer
+6. Warm the cache after the database check passes. Owner: on-call SRE
+7. Verify error rates return to baseline. Owner: incident commander
+
+## Rollback
+Revert.
+`],
+  ["r5 incident: correct runbook, a Rollback subsection names 'step 3'", true, `# Incident: multi-system outage
+
+## Steps
+1. Declare the incident and open the bridge. Owner: incident commander
+2. Confirm the database is healthy and accepting connections. Owner: DBA
+3. Drain the queue backlog. Owner: platform engineer
+4. Re-enable the api gateway routes. Owner: network engineer
+5. Warm the cache after the database check passes. Owner: on-call SRE
+6. Verify error rates return to baseline. Owner: incident commander
+
+## Rollback
+### Undo step 3
+Pause the queue consumers.
+`],
+];
+for (const [name, wantOk, text] of incR5Cases) {
+  const d = mkdtempSync(join(tmpdir(), "inc-verify-r5-"));
+  writeFileSync(join(d, "incident-runbook.md"), text);
+  const r = await verifyIncidentRunbook(d);
+  check(name, r.ok === wantOk, r.message);
+  rmSync(d, { recursive: true, force: true });
+}
+
+// ---------- KNOWN_HOLES ----------
+// Each plan below is wrong, but the verifier passes it. The pre-Task-9
+// verifier also passes it, so the hole is not new. These cases do not
+// fail the suite. They print SKIP. Close a hole only with a change that
+// makes the verifier stricter, then move the case to the asserted probes.
+// See eval/results/ADJUDICATIONS.md.
+const KNOWN_HOLES: Array<[string, string]> = [
+  // "Drop full_name." has no "column" or "field" word, so the verifier
+  // does not see the drop. It takes the later "Delete the leftover trigger
+  // on the old column" as the drop, in a later release.
+  ["r5 B: same-release 'Drop full_name.' with a later trigger decoy", sameRelDecoy("Drop full_name.")],
+];
+for (const [name, text] of KNOWN_HOLES) {
+  const d = mkdtempSync(join(tmpdir(), "plan-verify-hole-"));
+  writeFileSync(join(d, "migration-plan.md"), text);
+  const r = await verifyMigrationPlan(d);
+  const note = r.ok ? "" : " (the verifier now rejects it; move it to the asserted probes)";
+  console.log(`SKIP ${name}: pre-existing hole, see eval/results/ADJUDICATIONS.md${note}`);
+  rmSync(d, { recursive: true, force: true });
+}
 
 process.exit(failed ? 1 : 0);
