@@ -41,8 +41,12 @@ export function parseSteps(text: string, untilHeading?: RegExp): Step[] {
   // A numbered list under an "Invariants", "Constraints" or "Overview"
   // heading is preamble, not steps, but only when a later non-preamble
   // heading introduces the real plan. Consecutive preamble headings are one
-  // preamble.
-  const PREAMBLE = /^#{1,6}\s.*\b(invariants?|constraints?|assumptions?|overview|context|goals?|background|summary|ground rules?)\b/i;
+  // preamble. A "Business Rules" / "Naming Rules" / "Splitting Logic"
+  // heading is the same kind of definitional section: a plan that numbers
+  // its data-transformation rules 1-4 under such a heading, then starts the
+  // real steps at "1" again under a "Release" heading, must not have the
+  // rules counted as steps 1-4 that outrank the real ones.
+  const PREAMBLE = /^#{1,6}\s.*\b(invariants?|constraints?|assumptions?|overview|context|goals?|background|summary|ground rules?|business rules?|naming rules?|rules?|logic)\b/i;
   const STEP_HEADING = /^#{1,6}\s+(?:\*\*)?step\s+(\d+)\b[:.)]?\s*(.*)$/i;
   const headingLines = lines.map((l, i) => (/^#{1,6}\s/.test(l.trim()) ? i : -1)).filter((i) => i >= 0);
   const skip = new Set<number>();
@@ -57,9 +61,22 @@ export function parseSteps(text: string, untilHeading?: RegExp): Step[] {
 
   const flush = () => { if (current) { steps.push(current); current = null; headingStep = false; } };
 
+  // A fenced code block (```sql ... ```) commonly holds the DDL that *is*
+  // the step's action ("DROP COLUMN", "ALTER TABLE"). Its lines are
+  // uppercase SQL, which the plain continuation heuristic below treats as
+  // the start of a new, unindented paragraph and flushes on. Inside a
+  // fence, every line belongs to the current step regardless of case.
+  let inFence = false;
+
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
     const line = raw.trim();
+
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      if (current) current.text += " " + line;
+      continue;
+    }
 
     if (/^#{1,6}\s/.test(line) || /^-{3,}$/.test(line)) {
       flush();
@@ -83,10 +100,12 @@ export function parseSteps(text: string, untilHeading?: RegExp): Step[] {
     if (current) {
       if (line === "") {
         const next = lines[i + 1] ?? "";
-        if (!/^\s+\S/.test(next)) flush();
+        // A blank line before a fenced code block ("**Step 11:**\n\n```sql")
+        // is not a paragraph break; the fence carries the step's own action.
+        if (!/^\s+\S/.test(next) && !/^```/.test(next.trim())) flush();
         continue;
       }
-      if (/^\s+\S/.test(raw) || /^[a-z(`*]/.test(line)) { current.text += " " + line; continue; }
+      if (inFence || /^\s+\S/.test(raw) || /^[a-z(`*]/.test(line)) { current.text += " " + line; continue; }
       flush();
     }
   }
@@ -111,7 +130,19 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
   const r = load(workspaceDir, ["migration-plan.md", "plan.md", "output.md"]);
   if ("error" in r) return { ok: false, message: r.error };
   const text = r.text;
-  const steps = parseSteps(text, /rollback/i).map((s) => ({ ...s, text: s.text.toLowerCase().replace(/[*_`]/g, "") }));
+  const steps = parseSteps(text, /rollback/i).map((s) => ({
+    ...s,
+    // A qualified reference like `users.full_name` embeds a "." that is not
+    // a sentence boundary. Left alone, it breaks every same-sentence
+    // "[^.]{0,N}" window the phase detectors use below: the object regex
+    // can't see past it, so "add ... columns" fails to match "add
+    // users.first_name and users.last_name columns." A dot only ends a
+    // sentence when followed by whitespace or end of string, so a dot
+    // immediately followed by a non-space character is a qualifier, not a
+    // terminator; replace it with a space so the word after it still reads
+    // as its own token (full_name stays matchable) without a "." in the way.
+    text: s.text.toLowerCase().replace(/[*_`]/g, "").replace(/\.(?=\S)/g, " "),
+  }));
   const errors: string[] = [];
   if (steps.length < 5) errors.push(`Need at least 5 numbered steps before the Rollback section; found ${steps.length}.`);
 
@@ -132,7 +163,10 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
 
   const add = firstStep(steps, asAction(/\b(add|adds|adding|create|creates|introduce|introduces)\b/, /^[^.]{0,80}\b(columns?|fields?)\b/));
   const dualWrite = firstStep(steps, (t) =>
-    /\b(dual[- ]?writ(e|es|ing)|write[s]? (to )?both|writ(e|es|ing) (both|all three|the new and|old and new)|additionally[^.]{0,30}\bwrit)/.test(t) &&
+    // "write full_name, first_name, and last_name together" names all three
+    // columns instead of saying "both" or "all three"; "together" is the
+    // tell that it's one write, not a plain list of things a step touches.
+    /\b(dual[- ]?writ(e|es|ing)|write[s]? (to )?both|writ(e|es|ing) (both|all three|the new and|old and new)|additionally[^.]{0,30}\bwrit|writ(e|es|ing)\b[^.]{0,60}\btogether\b)/.test(t) &&
     !/\bwrite only\b[^.]{0,20}\bfull_name\b/.test(t));
   const backfillAsVerb = asAction(/\b(backfill|backfills)\b/, /^/, /^[^.]{0,4}\b(later|job)\b.*\b(will|to be)\b/);
   const backfillAsObject = asAction(/\b(run|runs|execute|executes|perform|performs|launch|launches|start|starts|kick off)\b/, /^[^.]{0,50}\b(backfill|existing rows|historical rows)\b/, /\b(caught|filled|handled|covered) by\b/);
@@ -144,11 +178,34 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
     return backfillAsVerb(t) || backfillAsObject(t);
   });
   const stopWrite = firstStep(steps, asAction(/\b(stop|stops|cease|ceases|remove|removes)\b/, /^[^.]{0,60}\b(writ(e|es|ing)|write path|populating)\b/));
-  const drop = firstStep(steps, asAction(/\b(drop|drops|delete|deletes|remove|removes)\b/, /^[^.]{0,60}\b(columns?|fields?)\b/, /^[^.]{0,20}\bfrom\b[^.]{0,40}\b(write|read) path/));
+  const drop = firstStep(steps, asAction(
+    /\b(drop|drops|delete|deletes|remove|removes)\b/,
+    /^[^.]{0,60}\b(columns?|fields?)\b/,
+    // "Remove the column from the ORM model" (or schema cache, or its
+    // ignored_columns list) stops the application referencing a column
+    // that is still in the database; it is the same-release step that
+    // stops writing, told from the model's side, not the DROP COLUMN
+    // migration. Only the database-level removal counts as the drop.
+    /^[^.]{0,20}\bfrom\b[^.]{0,40}\b(write|read) path\b|\b(orm|schema cache|ignored_?columns)\b/,
+  ));
   const switchRead = firstStep(steps, (t) =>
     sentences(t).some((sentence) =>
-      (/\b(switch|switches|switching|move|moves|migrate|migrates|cut ?over|flip|flips|point|points|update|updates|change|changes)\b(?:(?!\bwrit)[^.]){0,60}\bread/.test(sentence) ||
-       /\bread(s|ing)?\b[^.]{0,60}\binstead of\b/.test(sentence)) &&
+      // The verb-first form ("switch reads", "behavior changes (reads in
+      // release 3, writes in release 4...)") must not cross a parenthetical:
+      // excluding "(" from the gap stops a prep step that merely lists which
+      // release *later* changes each reader's behavior from being read as
+      // switching reads itself, while still matching "switch reads to X".
+      (/\b(switch|switches|switching|move|moves|migrate|migrates|cut ?over|flip|flips|point|points|update|updates|change|changes)\b(?:(?!\bwrit)[^.(]){0,60}\bread/.test(sentence) ||
+       /\bread(s|ing)?\b[^.]{0,60}\binstead of\b/.test(sentence) ||
+       // The read-first form: "All reads (display, search, ...) use
+       // `first_name` / `last_name`." or "Read path: read directly from
+       // `first_name`." states the same fact without an explicit "switch"
+       // verb before "read". Parens are allowed here since the reads being
+       // enumerated, not the verb, own this clause.
+       /\bread(s|ing)?\b(?:(?!\bwrit)[^.]){0,60}\b(use|uses|come from|comes from|target|targets|rely on|relies on|draw from|draws from|directly from|only from|exclusively from|now from)\b/.test(sentence) ||
+       // Heading-style title case: "Read Path Switched", "Reads Switched
+       // Over" puts the verb after "read" instead of before it.
+       /\bread(s|ing)?\b[^.]{0,15}\bswitch(ed|es|ing)?\b/.test(sentence)) &&
       !/\b(still|unchanged|no (behaviou?r )?change|not (yet )?changed|continue[s]? to read)\b/.test(sentence)));
 
   if (process.env.PLAN_VERIFY_DEBUG) {

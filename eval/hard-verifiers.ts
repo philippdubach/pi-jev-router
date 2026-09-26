@@ -70,8 +70,18 @@ export async function verifyStrictSTE(workspaceDir: string): Promise<VerifyResul
     errors.push(`${passive.length} sentence(s) use passive voice. First: "${passive[0].slice(0, 80)}"`);
   }
 
-  // "and" joining two imperatives is a compound instruction.
-  const compound = sentences.filter((s) => /^[A-Z][a-z]+\b[^.]*\band\b\s+[a-z]+\b/.test(s) && wordCount(s) > 8);
+  // "and" joining two imperatives is a compound instruction, e.g. "Stop the
+  // consumer and restart it." A single imperative with a plain list object
+  // ("Identify the queue, environment, and owning team.", "Obtain access to
+  // the service manager and monitoring dashboard.") also contains "and", but
+  // it is one instruction with a multi-item object, not two commands. The
+  // tell is what follows "and": a second command's own object almost always
+  // takes a determiner ("and restart THE service", "and notify THE team"),
+  // while a trailing list item is just a noun phrase with nothing after it.
+  const AND_NEW_CLAUSE = /\band\s+[a-z]+\s+(the|a|an|its|their|his|her|your|our|this|that|these|those)\b/i;
+  const compound = sentences.filter(
+    (s) => /^[A-Z][a-z]+\b[^.]*\band\b\s+[a-z]+\b/.test(s) && wordCount(s) > 8 && AND_NEW_CLAUSE.test(s),
+  );
   if (compound.length > 0) {
     errors.push(`${compound.length} compound instruction(s). First: "${compound[0].slice(0, 80)}"`);
   }

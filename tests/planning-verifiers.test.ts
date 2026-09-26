@@ -184,5 +184,31 @@ rmSync(join(dir2, "migration-plan.md"));
 copyFileSync(join(import.meta.dirname, "fixtures", "sonnet-incident-runbook.md"), join(dir2, "incident-runbook.md"));
 const realInc = await verifyIncidentRunbook(dir2);
 check("real Sonnet incident runbook passes", realInc.ok, realInc.message);
+rmSync(join(dir2, "incident-runbook.md"));
+
+// ---------- real frontier-model output, measured 2026-09-26 ----------
+// Three plans from the Task 9 frontier benchmark that the first pass of
+// this run's verifier rejected. Each rejection was a verifier bug, not a
+// bad plan: a qualified reference's "." (`users.full_name`) broke the
+// same-sentence "[^.]" windows several detectors use, a fenced DDL block's
+// upper-case SQL broke the plain-paragraph continuation heuristic so the
+// real DROP COLUMN step lost its text, and a "Business Rules" heading
+// wasn't recognised as preamble so its own numbered list of naming rules
+// was read as steps 1-4, ahead of the real ones.
+copyFileSync(join(import.meta.dirname, "fixtures", "opus-migration-plan-fenced-drop.md"), join(dir2, "migration-plan.md"));
+const opusReal = await verifyMigrationPlan(dir2);
+check("real Opus plan (fenced DROP COLUMN) passes", opusReal.ok, opusReal.message);
+rmSync(join(dir2, "migration-plan.md"));
+
+copyFileSync(join(import.meta.dirname, "fixtures", "gpt6sol-migration-plan-qualified-names.md"), join(dir2, "migration-plan.md"));
+const gpt6solReal = await verifyMigrationPlan(dir2);
+check("real gpt-6-sol plan (users.full_name qualified names) passes", gpt6solReal.ok, gpt6solReal.message);
+rmSync(join(dir2, "migration-plan.md"));
+
+copyFileSync(join(import.meta.dirname, "fixtures", "gemini-migration-plan-business-rules.md"), join(dir2, "migration-plan.md"));
+const geminiReal = await verifyMigrationPlan(dir2);
+check("real Gemini plan (Business Rules numbered list) passes", geminiReal.ok, geminiReal.message);
+rmSync(join(dir2, "migration-plan.md"));
+
 rmSync(dir2, { recursive: true, force: true });
 process.exit(failed ? 1 : 0);
