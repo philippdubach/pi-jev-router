@@ -3,13 +3,14 @@
  *
  * Run: node --experimental-strip-types eval/replay.ts [ledger.jsonl] [--rows]
  * No model calls. Uses the cached catalog and the committed evidence.
+ * Missing work kinds are derived the way the router derives them.
  * A selection change is judged by the diff it makes here before it goes live.
  */
 import { readFileSync } from "node:fs";
 import { loadCatalog, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { LEDGER_FILE } from "../src/ledger.ts";
-import { selectModel, type WorkKind } from "../src/selector.ts";
+import { resolveWorkKind, selectModel, type WorkKind } from "../src/selector.ts";
 import type { TaskEnvelope } from "../src/task-envelope.ts";
 
 export const REPLAY_DEFAULT_TOKENS = 20000;
@@ -33,7 +34,7 @@ export function replayRows(rows: unknown[], catalog: CatalogModel[], evidence: E
     const cls = r?.classification;
     if (!r || typeof r !== "object" || !cls?.ok || !cls.answers) { skipped++; continue; }
     const objective = typeof r.objective === "string" ? r.objective : "";
-    const workKind: WorkKind = KINDS.has(r.workKind) ? r.workKind : "other";
+    const workKind: WorkKind = KINDS.has(r.workKind) ? r.workKind : resolveWorkKind(undefined, String(cls.answers.category?.value ?? ""), objective);
     const env: TaskEnvelope = {
       taskId: String(r.taskId ?? "replay"), role: "direct", objective, acceptanceCriteria: [],
       relevantContext: String(r.contextHead ?? ""),
