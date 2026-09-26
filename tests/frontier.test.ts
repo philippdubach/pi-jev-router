@@ -60,11 +60,15 @@ check("knee of empty frontier is undefined", knee([]) === undefined);
 const collinear = [s("a", 0.5, 0.01, 1), s("b", 0.6, 0.1, 1), s("c", 0.7, 1.0, 1)];
 check("knee of a flat frontier is undefined", knee(collinear) === undefined);
 
-// --- tangency (log ratio) ---
+// --- tangency (log ratio over a fixed reference span) ---
+// Lambda is the quality worth of spanning COST_SPAN_DOUBLINGS (10). On the
+// mixed fixture the span is 0.01 -> 1.00, 6.64 doublings, so strong-costly
+// sits at x=0.66, mid at x=0.33, cheap-weak at x=0.
 // Cost is a ratio, so lambda trades quality for doublings of cost.
 check("zero lambda picks strong", tangency(frontier, 0, 0)!.pick.id === "strong-costly");
 check("a small lambda still picks strong", tangency(frontier, 0.05, 0)!.pick.id === "strong-costly");
-check("a large lambda picks cheap", tangency(frontier, 0.5, 0)!.pick.id === "cheap-weak");
+check("a moderate lambda still picks strong", tangency(frontier, 0.5, 0)!.pick.id === "strong-costly");
+check("a large lambda picks cheap", tangency(frontier, 1.5, 0)!.pick.id === "cheap-weak");
 check("a huge lambda picks cheap", tangency(frontier, 20, 0)!.pick.id === "cheap-weak");
 check("empty frontier returns undefined", tangency([], 1, 1) === undefined);
 
@@ -74,4 +78,25 @@ check("constant axis is inert", tangency(flatCost, 9, 9)!.pick.id === "b");
 const withFree = [s("free", 0.7, 0, 1), s("paid", 0.6, 0.1, 1)];
 check("a free model does not break the ratio", tangency(withFree, 5, 0)!.pick.id === "free");
 
+// --- knee anchored on measured models ---
+// A measured pair (a, b, c) and unmeasured extremes (z cheaper, w better).
+// The pick must not change when the extremes appear or disappear.
+const measured = new Set(["a", "b", "c"]);
+const core = [s("a", 0.70, 0.01, 1), s("b", 0.90, 0.02, 1), s("c", 0.95, 0.10, 1)];
+const withExtremes = [s("z", 0.50, 0.001, 1), ...core, s("w", 1.00, 1.00, 1)];
+check("anchored knee on the core", knee(core, measured)?.id === "b");
+check("anchored knee ignores unmeasured extremes", knee(withExtremes, measured)?.id === "b");
+// Without anchoring the extremes move the chord and can move the pick.
+const unanchored = knee(withExtremes)?.id;
+check("unanchored knee is reported for contrast", typeof unanchored === "string" || unanchored === undefined);
+// An unmeasured model above the measured chord may still win.
+const bargain = [...core, s("u", 0.94, 0.012, 1)]; // nearly c's quality at near a's price
+check("unmeasured bargain above the chord wins", knee(bargain, measured)?.id === "u");
+// Fewer than two measured points on the frontier: fall back to full chord.
+check("one measured point falls back to full chord", knee(withExtremes, new Set(["b"]))?.id === knee(withExtremes)?.id);
+
+// One measured model dominating the other measured models is the knee, even
+// with a cheaper unmeasured point on the frontier.
+const dominant = [s("cheap-unmeasured", 0.76, 0.0009, 1), s("best-measured", 0.97, 0.0017, 1), s("weak-measured", 0.68, 0.0034, 1), s("dear", 1.0, 0.66, 1)];
+check("dominant measured model is the knee", knee(dominant, new Set(["best-measured", "weak-measured"]))?.id === "best-measured");
 process.exit(failed ? 1 : 0);

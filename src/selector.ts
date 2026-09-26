@@ -338,7 +338,8 @@ export function selectModel(
     // trivial one should not pay for capability it will not use. The
     // classifier's complexity score is otherwise computed and never read.
     const lambda = w.lambda * complexityScale(complexity);
-    const kneePick = knee(front);
+    const measured = new Set(front.filter((m) => (statsFor(evidence, m.id, kind)?.runs ?? 0) > 0).map((m) => m.id));
+    const kneePick = knee(front, measured);
     const pick = kneePick ?? tangency(front, lambda, latPresent ? w.mu : 0)?.pick;
     if (!pick) continue;
     const baseReason: RecommendationReason = kneePick ? "frontier_knee" : "frontier_tangency";
