@@ -50,7 +50,8 @@ check("rejects expired", !feasible(model("x", { expiresAt: 1 }), env(), 0, "code
 check("rejects text-only when images present", !feasible(model("x", { inputModalities: ["text"] }), env({ hasImages: true }), 0, "code", {}));
 check("accepts image model when images present", feasible(model("x"), env({ hasImages: true }), 0, "code", {}));
 check("rejects no reasoning for code", !feasible(model("x", { supportsReasoning: false }), env(), 0, "code", {}));
-check("allows no reasoning for writing", feasible(model("x", { supportsReasoning: false }), env(), 0, "writing", {}));
+// The role policy is a separate gate. Turn it off to test only the reasoning rule.
+check("allows no reasoning for writing", feasible(model("x", { supportsReasoning: false }), env(), 0, "writing", {}, { ignoreRolePolicy: true }));
 check("rejects a negative price sentinel", !feasible(model("openrouter/auto", { promptPrice: -1 }), env(), 0, "code", {}));
 check("rejects a batch endpoint", !feasible(model("x:batch"), env(), 0, "code", {}));
 check("rejects a free endpoint", !feasible(model("x:free"), env(), 0, "code", {}));

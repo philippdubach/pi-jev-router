@@ -58,32 +58,36 @@ export type WorkKind = "planning" | "code" | "writing" | "other";
  * intelligence. Writing goes to fast OpenAI models, and the STE directive is
  * applied. Code takes the Pareto pick. These are eligibility rules, not
  * weights: inside the eligible set the frontier still decides.
- *
- * Placed in the widest gap among the top 20 intelligence scores of the
- * cached catalog (136 models with an index, 26 September 2026) that keeps
- * more than one billable model eligible. The widest gap overall is
- * 57.6 -> 53.4, but only claude-opus-5.5 sits above it, so the value
- * function would have no choice. The next widest is 49.6 -> 47.5: claude-fable-5
- * at percentile 0.9333 is above it, gpt-6-sol at 0.9185 (its :batch variant
- * at 0.9259) is below. Above the line: claude-opus-5.5 (57.6),
- * claude-fable-5.1 (53.4), gpt-6-astra (52.7), claude-opus-5 (50.8) and
- * claude-fable-5 (49.6). claude-sonnet-5 (38.2) is far below.
  */
-export const PLANNING_MIN_INTELLIGENCE_PERCENTILE = 0.93;
-export const WRITING_VENDORS = ["openai/"];
 
-/** Percentile of each model's intelligence index among models that list one. */
-export function intelligencePercentile(catalog: CatalogModel[]): Map<string, number> {
-  const scored = catalog.filter((m) => (m.aa?.intelligence ?? 0) > 0).sort((a, b) => a.aa!.intelligence - b.aa!.intelligence);
-  const out = new Map<string, number>();
-  scored.forEach((m, i) => out.set(m.id, scored.length > 1 ? i / (scored.length - 1) : 1));
-  return out;
-}
+/**
+ * Minimum Artificial Analysis intelligence index for planning. It is an
+ * absolute score, because a percentile moves each time the catalog adds a
+ * model. Placed in the gap from 49.6 (claude-fable-5) to 47.5 (gpt-6-sol).
+ * Eligible on 26 September 2026: claude-opus-5.5 (57.6), claude-fable-5.1
+ * (53.4), gpt-6-astra (52.7), claude-opus-5 (50.8) and claude-fable-5
+ * (49.6). claude-sonnet-5 (38.2) is far below.
+ */
+export const PLANNING_MIN_INTELLIGENCE = 48.5;
+export const WRITING_VENDORS = ["openai/"];
+/**
+ * Minimum EQ-Bench writing Elo for a writing model from WRITING_VENDORS. An
+ * unrated model gets the optimistic prior and then wins on price alone, so
+ * gpt-5-nano took every writing task. Placed in the widest gap near the top
+ * of the rated, tool-capable OpenAI models: from 1825.8 (gpt-5.6-luna) to
+ * 1699.8 (gpt-5.2). Eligible on 26 September 2026: gpt-6-astra, gpt-5.6-sol,
+ * gpt-5.6-terra, gpt-5.5, gpt-5.4 and gpt-5.6-luna. An unrated model with
+ * PROVEN_RUNS or more measured writing runs is also eligible.
+ */
+export const WRITING_MIN_ELO = 1760;
 
 /** True when the role policy lets this model take work of this kind. */
-export function roleEligible(m: CatalogModel, kind: WorkKind, pct: Map<string, number>): boolean {
-  if (kind === "planning") return (pct.get(m.id) ?? 0) >= PLANNING_MIN_INTELLIGENCE_PERCENTILE;
-  if (kind === "writing") return WRITING_VENDORS.some((v) => m.id.startsWith(v));
+export function roleEligible(m: CatalogModel, kind: WorkKind, evidence: EvidenceIndex): boolean {
+  if (kind === "planning") return (m.aa?.intelligence ?? 0) >= PLANNING_MIN_INTELLIGENCE;
+  if (kind === "writing") {
+    if (!WRITING_VENDORS.some((v) => m.id.startsWith(v))) return false;
+    return (WRITING_ELO[m.id] ?? 0) >= WRITING_MIN_ELO || (statsFor(evidence, m.id, "writing")?.runs ?? 0) >= PROVEN_RUNS;
+  }
   return true;
 }
 
@@ -296,7 +300,6 @@ export function feasible(
     ignoreQualityFloor?: boolean;
     ignoreRolePolicy?: boolean;
     priors?: Map<string, number>;
-    intelligencePct?: Map<string, number>;
     now?: number;
   } = {},
 ): boolean {
@@ -317,7 +320,7 @@ export function feasible(
   if (!m.inputModalities.includes("text")) return false;
   if (env.facts.hasImages && !m.inputModalities.includes("image")) return false;
   if (m.expiresAt !== null && m.expiresAt <= now) return false;
-  if (!opts.ignoreRolePolicy && opts.intelligencePct && !roleEligible(m, kind, opts.intelligencePct)) return false;
+  if (!opts.ignoreRolePolicy && !roleEligible(m, kind, evidence)) return false;
   if (!opts.ignoreProvenGate && risk >= 2) {
     if ((statsFor(evidence, m.id, kind)?.runs ?? 0) < PROVEN_RUNS) return false;
   }
@@ -428,13 +431,11 @@ export function selectModel(
   const priors = qualityPrior(catalog, kind, evidence);
   const { prior: latPrior, present: latPresent } = latencySignal(evidence, kind);
 
-  const intelligencePct = intelligencePercentile(catalog);
-
   // The role policy is relaxed after the reasoning requirement, so a role
   // with no eligible model still routes. The quality floor is relaxed last:
   // a measured failure should outrank the proven gate, the reasoning
   // requirement and the role policy.
-  const base = { priors, intelligencePct };
+  const base = { priors };
   const attempts: Array<{ opts: Parameters<typeof feasible>[5]; reason: RecommendationReason }> = [
     { opts: { ...base }, reason: "frontier_tangency" },
     { opts: { ...base, ignoreProvenGate: true }, reason: "relaxed_proven_gate" },

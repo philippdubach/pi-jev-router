@@ -30,7 +30,9 @@ const evidence: EvidenceIndex = {
   "bad/one": { writing: { runs: 2, passes: 0, meanCostUsd: 0.0001, meanLatencyMs: 4000 } },
 };
 
-const opts = { priors };
+// These ids are not writing vendors. Turn the role policy off so that only
+// the quality floor is tested.
+const opts = { priors, ignoreRolePolicy: true };
 check("a model with a clean record stays eligible", feasible(catalog[0], env, 0, "writing", evidence, opts));
 check("a model that failed its runs is excluded", !feasible(catalog[1], env, 0, "writing", evidence, opts));
 check("an untested model is not blocked by the floor", feasible(catalog[2], env, 0, "writing", evidence, opts));
