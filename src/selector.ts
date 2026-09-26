@@ -133,6 +133,7 @@ export type RecommendationReason =
   | "relaxed_proven_gate"
   | "relaxed_reasoning"
   | "relaxed_role_policy"
+  | "relaxed_quality_floor"
   | "catalog_unavailable"
   | "classifier_unavailable"
   | "continuation";
@@ -164,6 +165,13 @@ export function resolveWorkKind(explicit?: string, category?: string, promptText
   if (/(^|\s)\/plan\b/.test(lower)) return "planning";
   // Clear text-level intent takes precedence where category is ambiguous:
   if (/\b(architecture|architect|design (a|the|some|our)?|system design|rfc|spec|tradeoffs?|rollout plan|plan the|roadmap|plan (this|it|out))\b/.test(lower)) {
+    return "planning";
+  }
+  // A draft/write/make/prepare verb aimed at a plan or roadmap object is
+  // planning, not writing, even though "draft" and "write" are otherwise
+  // writing verbs below. "for Q1" / "for the rollout" sits between the verb
+  // and the object, so the object can trail up to 30 characters back.
+  if (/\b(draft|write|make|prepare)\b[^.]{0,30}\b(plan|roadmap)\b/.test(lower)) {
     return "planning";
   }
   if (/\b(write\b.*\b(blog|article|post|essay|copy|paragraph|prose|readme|summary|intro)|draft\b|humanize|polish the text|rewrite|simplified technical english|ste\b)\b/.test(lower)) {
@@ -454,7 +462,10 @@ export function selectModel(
     { opts: { ...base, ignoreProvenGate: true }, reason: "relaxed_proven_gate" },
     { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true }, reason: "relaxed_reasoning" },
     { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true, ignoreRolePolicy: true }, reason: "relaxed_role_policy" },
-    { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true, ignoreRolePolicy: true, ignoreQualityFloor: true }, reason: "relaxed_reasoning" },
+    // Last resort: also ignores the role policy and the quality floor. A
+    // measured failure still outranks nothing, so this attempt must name
+    // itself, not reuse an earlier attempt's reason.
+    { opts: { ...base, ignoreProvenGate: true, ignoreReasoning: true, ignoreRolePolicy: true, ignoreQualityFloor: true }, reason: "relaxed_quality_floor" },
   ];
 
   for (const attempt of attempts) {

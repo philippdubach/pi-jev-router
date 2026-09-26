@@ -21,6 +21,10 @@ Each fix has a negative control (a wrong plan that must fail) and a positive con
 
 A future run of the same model can write the same phrasing. The verifier will then give FAIL again. A person must read that artifact and adjudicate it, or leave the FAIL.
 
+Only the 26 September runs were re-read under this standard. Older rows, for
+example the two `z-ai/glm-5.3-flash` `write_strict_ste` FAILs from
+2026-09-22 and 2026-09-25, were not re-read and keep the verifier's verdict.
+
 ## Adjudicated rows
 
 `<tmp>` is the value of `node -e 'console.log(require("os").tmpdir())'`. The artifacts are local to the benchmark machine. The fixture is the committed copy.

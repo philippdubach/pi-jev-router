@@ -139,14 +139,20 @@ overhead is excluded and five tasks do not establish a general saving rate.
 
 ### Benchmark, 26 September 2026
 
-Pass counts by model and task kind (planning / hard code / writing):
+Pass counts by model and task kind (planning / hard code / writing), scored
+the way the router reads evidence: `src/evidence.ts` `scoreRow`, a 12-turn
+budget, a timeout counted as a failure.
 
 | Model | Planning | Hard code | Writing |
 |---|---|---|---|
 | `anthropic/claude-opus-5.5` | 4/4 | 10/10 | 2/2 |
 | `openai/gpt-6-sol` | 4/4 | 10/10 | 6/6 |
-| `google/gemini-3.8-flash` | 4/4 | 6/10 | 2/2 |
+| `google/gemini-3.8-flash` | 2/4 | 2/10 | 2/2 |
 | `openai/gpt-5.6-luna` | — | — | 4/4 |
+
+The runner's own pass counts differ where a run went over the 12-turn budget
+or timed out (`google/gemini-3.8-flash` in particular); the router reads the
+scored numbers above, not the runner's raw `passed` flag.
 
 Total spend: $5.52. Seven rows across these runs were adjudicated: a human
 read the artifact and found it correct where a verifier rule rejected it on

@@ -27,3 +27,13 @@ export function readVersion(root: string = ROOT): string {
 }
 
 export const LOADED_VERSION: string = readVersion();
+
+/**
+ * The `/router status` version line. Same version: report it once. Different:
+ * name both and say to restart, so a stale session is never silent about it.
+ */
+export function versionLine(loaded: string, disk: string): string {
+  return disk === loaded
+    ? `version: ${loaded}`
+    : `version: ${loaded} loaded, ${disk} on disk — restart pi to load it`;
+}

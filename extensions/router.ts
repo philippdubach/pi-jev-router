@@ -27,7 +27,7 @@ import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, DECOMPOSE
 import { loadCatalog, CATALOG_TTL_MS, type CatalogModel } from "../src/catalog.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
-import { estimateTargetTokens, inheritWorkKind, isSameModel, continuationDecision, type RoutedTask } from "../src/continuity.ts";
+import { estimateTargetTokens, inheritWorkKind, isSameModel, continuationDecision, nextLastRouted, type RoutedTask } from "../src/continuity.ts";
 import {
   blockRoute,
   loadState,
@@ -38,7 +38,7 @@ import {
 import { record, LEDGER_FILE } from "../src/ledger.ts";
 import { createTask, getTask, transition } from "../src/board.ts";
 import { dispatch } from "../src/dispatch.ts";
-import { LOADED_VERSION, readVersion } from "../src/version.ts";
+import { LOADED_VERSION, readVersion, versionLine } from "../src/version.ts";
 import { assistantCost, shouldReload } from "../src/session-state.ts";
 import { Type } from "typebox";
 import type { TaskEnvelope, ClassificationResult } from "../src/task-envelope.ts";
@@ -141,8 +141,10 @@ export default function (pi: ExtensionAPI) {
     if (suppressModelSelect) return;
     if (event.source === "set" || event.source === "cycle" || event.source === "restore") {
       const id = `${event.model.provider}/${event.model.id}`;
-      // Only treat non-openrouter or differing picks as manual pins.
-      if (id !== lastDecision?.recommendation.modelId) manualPin = id;
+      // Only treat non-openrouter or differing picks as manual pins. Compare
+      // against what actually ran (activeModel), not the frontier's raw pick,
+      // so re-selecting a pinned model is not itself read as a manual pin.
+      if (id !== (lastDecision?.activeModel ?? lastDecision?.recommendation.modelId)) manualPin = id;
     }
   });
 
@@ -160,7 +162,9 @@ export default function (pi: ExtensionAPI) {
     const kept = manualPin ? undefined : continuationDecision(event.prompt, lastRouted);
     if (kept) {
       const activeModel = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
-      lastDecision = { ts: new Date().toISOString(), recommendation: kept.recommendation, note: "continuation" };
+      // Carry activeModel onto this lastDecision too, so /router status and
+      // the status bar show what is actually running, not just the pick.
+      lastDecision = { ts: new Date().toISOString(), recommendation: kept.recommendation, note: "continuation", activeModel };
       record({
         taskId, mode, recommendation: kept.recommendation,
         note: "continuation: kept model, no classification",
@@ -211,6 +215,10 @@ export default function (pi: ExtensionAPI) {
     if (manualPin) {
       lastDecision = { ts: new Date().toISOString(), recommendation: { ...recommendation, modelId: manualPin }, note: "manual model pin active", activeModel: manualPin };
       record({ taskId, mode, recommendation, activeModel: manualPin, classification, note: "manual pin", objective: event.prompt, contextChars: collected.relevantContext.length, contextHead: collected.relevantContext, contextTokens: collected.facts.estimatedContextTokens, workKind, inheritedWorkKind: inherit.inherited });
+      // A manual pin names no routed task of its own. Clear lastRouted so a
+      // later bare continuation ("yes") does not resume whatever task was
+      // routed before the user pinned a model by hand.
+      lastRouted = undefined;
       applyMode(ctx);
       return;
     }
@@ -274,7 +282,9 @@ export default function (pi: ExtensionAPI) {
     lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched, activeModel };
 
     if (trial && mode === "auto" && switched) {
-      trial.log.push({ objective: event.prompt.replace(/\s+/g, " ").slice(0, 60), model: recommendation.modelId, workKind, reason: recommendation.reason, costEst: recommendation.cEst });
+      // Log the model that actually ran (the switch target), not the raw
+      // frontier pick, which a pin can override.
+      trial.log.push({ objective: event.prompt.replace(/\s+/g, " ").slice(0, 60), model: pinnedModelId ?? recommendation.modelId, workKind, reason: recommendation.reason, costEst: recommendation.cEst });
       trial.remaining -= 1;
       if (trial.remaining <= 0) {
         const lines = trial.log.map((e, i) => `  ${i + 1}. [${e.workKind}] ${e.model} ($${(e.costEst ?? 0).toFixed(4)} est, ${e.reason}) — "${e.objective}"`);
@@ -304,7 +314,10 @@ export default function (pi: ExtensionAPI) {
       reason: recommendation.reason,
       activeModel,
     });
-    if (recommendation.modelId) lastRouted = { recommendation, workKind };
+    // An abstain (brief_unclear, above) sets recommendation.modelId to "".
+    // nextLastRouted clears lastRouted in that case, so a later bare
+    // continuation ("yes") does not resume the task routed before the abstain.
+    lastRouted = nextLastRouted(recommendation, workKind);
     applyMode(ctx);
 
     const tier = workKind;
@@ -603,12 +616,7 @@ export default function (pi: ExtensionAPI) {
             `ledger: ${LEDGER_FILE}`,
             `catalog: ${catalogCache.length} models (${catalogSource})`,
             `weights: ${JSON.stringify(PROFILE_WEIGHTS)}`,
-            (() => {
-              const disk = readVersion();
-              return disk === LOADED_VERSION
-                ? `version: ${LOADED_VERSION}`
-                : `version: ${LOADED_VERSION} loaded, ${disk} on disk — restart pi to load it`;
-            })(),
+            versionLine(LOADED_VERSION, readVersion()),
           ];
           ctx.ui.notify(lines.join("\n"), "info");
         }

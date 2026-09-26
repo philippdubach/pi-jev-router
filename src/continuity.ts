@@ -91,3 +91,15 @@ export function continuationDecision(prompt: string, last: RoutedTask | undefine
   if (!last.recommendation.modelId || last.recommendation.reason === "brief_unclear") return undefined;
   return { workKind: last.workKind, recommendation: { ...last.recommendation, reason: "continuation" } };
 }
+
+/**
+ * The next `lastRouted` value after a routing decision.
+ *
+ * An abstain (`recommendation.modelId === ""`, the brief_unclear case in
+ * `selectModel`) must clear `lastRouted`, not keep the task routed before
+ * the abstain. Otherwise a later bare continuation ("yes", "ok") resumes
+ * the wrong task's model.
+ */
+export function nextLastRouted(recommendation: Recommendation, workKind: WorkKind): RoutedTask | undefined {
+  return recommendation.modelId ? { recommendation, workKind } : undefined;
+}

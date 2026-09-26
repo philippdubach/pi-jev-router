@@ -108,6 +108,16 @@ const kneePick = selectModel(env(), answers(1, 0) as any, kneeCatalog, {}, "code
 check("three-point frontier reports the knee", kneePick.kneeId === "b/mid");
 check("value function picks, not the knee", kneePick.modelId === "c/strong" && kneePick.reason === "frontier_tangency");
 
+// --- last-resort relaxation ---
+// A model whose posterior fails the quality floor on every attempt except
+// the final one, which also ignores the floor. That last attempt must report
+// its own reason, not reuse "relaxed_reasoning" from an earlier attempt.
+const failingOnly: CatalogModel[] = [model("bad/one")];
+const failingEvidence: EvidenceIndex = { "bad/one": { code: { runs: 5, passes: 0, meanCostUsd: 0.01, meanLatencyMs: 900 } } };
+const lastResort = selectModel(env(), answers(1, 0) as any, failingOnly, failingEvidence, "code");
+check("the floor-relaxed attempt reports its own reason", lastResort.reason === "relaxed_quality_floor", lastResort.reason);
+check("it still returns the only model available", lastResort.modelId === "bad/one");
+
 // --- weights table shape ---
 check("writing is the most cost averse", PROFILE_WEIGHTS.writing.lambda > PROFILE_WEIGHTS.code.lambda);
 check("planning is the least cost averse", PROFILE_WEIGHTS.planning.lambda < PROFILE_WEIGHTS.code.lambda);

@@ -2,7 +2,7 @@
 import {
   inheritWorkKind, estimateTargetTokens, tokenizerFamily, isSameModel,
   CROSS_TOKENIZER_MARGIN,
-  isContinuation, continuationDecision,
+  isContinuation, continuationDecision, nextLastRouted,
 } from "../src/continuity.ts";
 
 let failed = 0;
@@ -67,5 +67,15 @@ check("no previous task: classify normally", continuationDecision("continue", un
 const abstained = { workKind: "other" as const, recommendation: { modelId: "", reason: "brief_unclear" as const } };
 check("after an abstain: classify normally", continuationDecision("continue", abstained) === undefined);
 check("a new instruction: classify normally", continuationDecision("fix the failing test", routed) === undefined);
+
+// nextLastRouted: what `lastRouted` becomes after a routing decision. An
+// abstain (empty pick) must clear it, not keep the task routed before the
+// abstain, or a later bare continuation ("yes") would resume the wrong task.
+const picked = { modelId: "z-ai/glm-5.3-flash", reason: "frontier_tangency" as const };
+check("a non-empty pick becomes the routed task",
+  nextLastRouted(picked, "code")?.recommendation.modelId === "z-ai/glm-5.3-flash");
+const abstain2 = { modelId: "", reason: "brief_unclear" as const };
+check("an abstain (empty pick) clears the routed task",
+  nextLastRouted(abstain2, "other") === undefined);
 
 process.exit(failed ? 1 : 0);
