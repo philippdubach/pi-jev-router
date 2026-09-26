@@ -138,4 +138,43 @@ for (const [wantCompound, sentence] of r3SteCases) {
 }
 rmSync(dir3, { recursive: true, force: true });
 
+// ---------- fix round 4: structural rewrite (controller ruling R13) ----------
+// Round 3's blacklist ("flag any short tail unless the first word is a
+// known bare verb") still let fresh paraphrases through: none of
+// reset/investigate/inform/evict/kill/trigger/redeploy/purge were on the
+// blacklist, so all seven slipped past unflagged. Inverted to an allowlist
+// covering exactly what the three real gpt-6-sol runbooks need exempted,
+// plus a per-segment check that denies the Oxford-list exemption when a
+// later comma segment reads as its own "verb + determiner" command.
+const dir4 = mkdtempSync(join(tmpdir(), "ste-verify-r4-"));
+const r4SteCases: Array<[boolean, string]> = [
+  [true, "Drain the queue on the primary broker node and restart the service."],
+  [true, "Stop the consumer, drain the queue, and restart the service."],
+  [true, "Stop the affected message queue consumer and restart the pods."],
+  [true, "Stop the affected consumer on the primary node and notify the team."],
+  [true, "Scale the consumer deployment down to zero replicas and delete lock files."],
+  [true, "Open the deployment console for the consumer service and select Restart."],
+  [true, "Check the logs, metrics, and traces and restart the failing consumer service."],
+  [true, "Stop the affected message queue consumer and reset offsets."],
+  [true, "Stop the consumer service on every node and investigate."],
+  [true, "Pause the consumer group in the console and trigger rebalancing."],
+  [true, "Stop the consumer, drain the queue, and restart consumers."],
+  [true, "Stop the consumer, drain the queue, and restart all pods."],
+  [true, "Stop the consumer, purge the dead letters, and redeploy."],
+  [true, "Stop the affected consumer on the primary node and inform stakeholders."],
+  [true, "Cordon the node running the stuck consumer and evict pods."],
+  [true, "Stop the affected message queue consumer and restart all pods."],
+  [true, "Take a heap dump of the stuck consumer process and kill it."],
+  [false, "Identify the consumer service, queue, deployment environment, and owning team."],
+  [false, "Obtain access to the service manager and monitoring dashboard."],
+  [false, "Record the current consumer lag, partition offset, and restart count."],
+];
+for (const [wantCompound, sentence] of r4SteCases) {
+  writeFileSync(join(dir4, "runbook.md"), runbookWithStep(sentence));
+  const r = await verifyStrictSTE(dir4);
+  const gotCompound = r.message.includes("compound instruction");
+  check(`r4 compound=${wantCompound}: "${sentence.slice(0, 55)}..."`, gotCompound === wantCompound, r.message);
+}
+rmSync(dir4, { recursive: true, force: true });
+
 process.exit(failed ? 1 : 0);

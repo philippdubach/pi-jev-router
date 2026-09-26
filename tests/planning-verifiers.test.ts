@@ -533,4 +533,191 @@ for (const [name, wantOk, text] of r3Cases) {
   rmSync(dir3, { recursive: true, force: true });
 }
 
+// ---------- fix round 4: structural rewrite (controller ruling R13) ----------
+// Round 3's narrowing still let fresh paraphrases through (findings 2, 3, 5,
+// 6 of the round-3 re-review), and closing each with another keyword or gap
+// tweak was a paraphrase hunt with no end. R13: implement the reviewer's
+// structural rules instead - PREAMBLE by position (before the first
+// release/phase/step-numbered heading, not by heading keyword), drop scoped
+// to the column itself with a database-aware ORM reject, stop-write forms
+// anchored to the real label/title shapes, dual-write "together" requiring
+// fullname as an immediate write target. Every probe from t9r3/plan.ts.
+const R1B = `## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+`;
+const IDX_R4 = `## Release 4
+7. Drop the leftover index on the old column.`;
+const earlyR4 = (h: string) => wrapR3(`## Release 1: expand
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+${h}
+3. Switch reads to first_name and last_name.
+## Release 3: backfill
+4. Backfill existing rows from full_name.
+5. Confirm all reads use first_name and last_name.
+## Release 4
+6. Stop writing to the old full_name column.
+## Release 5
+7. Drop the old column full_name.`);
+const noStopR4 = (s: string) => wrapR3(`${R1B}## Release 3
+5. ${s}
+## Release 4
+6. Drop the old column full_name.`);
+const sameRelR4 = (s: string) => wrapR3(`${R1B}## Release 3
+5. Stop writing to the old full_name column.
+6. ${s}
+${IDX_R4}`);
+const r4Cases: Array<[string, boolean, string]> = [
+  ["F2 (r4): 'Drop the column from the ORM and the database.' same release", false, sameRelR4("Drop the column from the ORM and the database.")],
+  ["F2 (r4): 'Delete the field from the ORM model and from Postgres.' same release", false, sameRelR4("Delete the field from the ORM model and from Postgres.")],
+  ["F2 (r4): 'Drop the column from the ORM, then run ALTER TABLE...' same release", false, sameRelR4("Drop the column from the ORM, then run ALTER TABLE users DROP COLUMN full_name.")],
+  ["F2 (r4): 'Remove the full_name column from the database and the ORM model.' same release", false, sameRelR4("Remove the full_name column from the database and the ORM model.")],
+  ["F2 (r4): 'Drop the full_name column and remove it from the ORM model.' same release", false, sameRelR4("Drop the full_name column and remove it from the ORM model.")],
+  ["F2 (r4): same-sentence 'stop writing full_name and delete the column'", false, wrapR3(`${R1B}## Release 3
+5. Stop writing full_name and delete the column in the same deploy.
+${IDX_R4}`)],
+  ["F3 (r4): '## Business logic cutover' (no release word) hides early switch", false, earlyR4("## Business logic cutover")],
+  ["F3 (r4): '## Cutover: naming rules applied to reads' hides early switch", false, earlyR4("## Cutover: naming rules applied to reads")],
+  ["F3 (r4): '## Read-path business logic' hides early switch", false, earlyR4("## Read-path business logic")],
+  ["F3 (r4): '## Switch reads (business logic)' hides early switch", false, earlyR4("## Switch reads (business logic)")],
+  ["F3/R12 (r4) side effect: '## Invariants for every release' list is not parsed as steps", false, `# Plan
+## Invariants for every release
+1. Add columns as nullable before any code writes them.
+2. Dual-write old and new columns until reads switch.
+## Release 1
+3. Add the new columns first_name and last_name as nullable.
+4. Backfill existing rows from full_name.
+## Release 2
+5. Switch reads to first_name and last_name.
+## Release 3
+6. Stop writing to the old full_name column.
+## Release 4
+7. Drop the old column full_name.
+
+## Rollback
+Revert.
+`],
+  ["F6 (r4): forward ref 'Monitor error rates until old writes are removed.'", false, noStopR4("Monitor error rates until old writes are removed.")],
+  ["F6 (r4): 'Plan a later release where writes are removed.'", false, noStopR4("Plan a later release where writes are removed.")],
+  ["F6 (r4): 'Until the write path is exclusively first_name and last_name, keep dual writes.'", false, noStopR4("Until the write path is exclusively first_name and last_name, keep dual writes.")],
+  ["F6 (r4): 'Do not ship Release 4 until old writes are removed.'", false, noStopR4("Do not ship Release 4 until old writes are removed.")],
+  ["Minor-1 (r4): 'writes first_name and last_name, split out of full_name, together'", false, `# Plan
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes first_name and last_name, split out of full_name, together on every save.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.
+
+## Rollback
+Revert.
+`],
+  ["Minor-1 (r4): 'writes first_name and last_name based on full_name together'", false, `# Plan
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that writes first_name and last_name based on full_name together in one transaction.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.
+
+## Rollback
+Revert.
+`],
+  ["Minor-4 (r4) correct: 'Reads use full_name until first_name is backfilled' still passes", true, `# Plan
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns. Reads use full_name until first_name is backfilled.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column.
+## Release 4
+6. Drop the old column full_name.
+
+## Rollback
+Revert.
+`],
+  ["correct (r4): stop-write step also removes from ORM model still passes", true, wrapR3(`${R1B}## Release 3
+5. Stop writing to the old full_name column and remove the column from the ORM model.
+## Release 4
+6. Drop the old column full_name.`)],
+];
+for (const [name, wantOk, text] of r4Cases) {
+  const dir4 = mkdtempSync(join(tmpdir(), "plan-verify-r4-"));
+  writeFileSync(join(dir4, "migration-plan.md"), text);
+  const r = await verifyMigrationPlan(dir4);
+  check(name, r.ok === wantOk, r.message);
+  rmSync(dir4, { recursive: true, force: true });
+}
+
+// ---------- R12 coverage: the three round-1 (t9/b2.ts) probes never committed ----------
+const dir5 = mkdtempSync(join(tmpdir(), "plan-verify-r1missing-"));
+writeFileSync(join(dir5, "migration-plan.md"), `# Plan
+
+## Steps
+1. Add nullable users.first_name and users.last_name columns.
+2. Deploy dual-write so both users.full_name and the new columns are written.
+3. Switch reads to users.first_name and users.last_name.
+4. Backfill existing rows.
+5. Stop writing users.full_name.
+6. In a later release, drop users.full_name.
+
+## Rollback
+Revert the release and keep the old column in place until the next deploy is safe.
+`);
+const r1MissingA = await verifyMigrationPlan(dir5);
+check("R12 coverage: qualified_reads_before_backfill (t9/b2.ts)", !r1MissingA.ok, r1MissingA.message);
+
+writeFileSync(join(dir5, "migration-plan.md"), `# Plan
+
+## Release 1
+1. Add the new columns first_name and last_name as nullable.
+2. Deploy code that dual-writes both old and new columns.
+3. Backfill existing rows from full_name.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing to the old full_name column. Drop the full_name column and remove it from the ORM model.
+## Release 4
+6. Remove the dual-write helpers and drop the old column's index.
+
+## Rollback
+Revert the release and keep the old column in place until the next deploy is safe.
+`);
+const r1MissingB = await verifyMigrationPlan(dir5);
+check("R12 coverage: orm_only_same_release (t9/b2.ts)", !r1MissingB.ok, r1MissingB.message);
+
+writeFileSync(join(dir5, "migration-plan.md"), `# Plan
+
+## Release 1
+1. Add nullable first_name and last_name columns to users.
+2. Update the profile service so it writes first_name and last_name together on every save, split from the submitted name.
+3. Backfill existing rows from full_name in batches.
+## Release 2
+4. Switch reads to first_name and last_name.
+## Release 3
+5. Stop writing full_name.
+## Release 4
+6. Drop the full_name column.
+
+## Rollback
+Revert the release and keep the old column in place until the next deploy is safe.
+`);
+const r1MissingC = await verifyMigrationPlan(dir5);
+check("R12 coverage: together_natural (t9/b2.ts)", !r1MissingC.ok, r1MissingC.message);
+rmSync(dir5, { recursive: true, force: true });
+
 process.exit(failed ? 1 : 0);

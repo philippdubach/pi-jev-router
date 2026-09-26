@@ -97,27 +97,52 @@ export async function verifyStrictSTE(workspaceDir: string): Promise<VerifyResul
   //     *chain of imperatives*, where every "item" is its own full command,
   //     not a plain list: "Stop the consumer, drain the queue, and restart
   //     the service.").
-  // The short-tail exemption itself must not fire when the word right after
-  // "and" is one of a small set of unambiguous bare-form runbook verbs
-  // (never a "-ing" gerund, which is what makes "and monitoring dashboard"
-  // and "and owning team" read as noun phrases, not actions): "and delete
-  // lock files.", "and select Restart." are two-command sentences whose
-  // second object never takes a determiner or a comma list, and the only
-  // way to tell them from "and restart count." (a measurement noun, not an
-  // action) is that "delete"/"select" don't also double as a plain noun.
+  // The short-tail exemption is inverted from a verb blacklist to an
+  // allowlist: a blacklist of "unambiguous bare-form verbs" chases
+  // paraphrases forever (delete/select were listed; reset/investigate/
+  // inform/evict/kill were not, and all slipped through unflagged). The
+  // real runbooks this check has to pass need exactly six phrases exempted
+  // ("owning team", "consumer group", "restart count" and "current restart
+  // count" as Oxford-list/short-tail endings, "monitoring dashboard", and
+  // "logs" alone) plus any "-ing" gerund-adjective tail ("owning team" and
+  // "monitoring dashboard" both start with one). Nothing else is exempt by
+  // shape - a short tail is flagged by default unless it is on this list or
+  // starts with a gerund, so a future paraphrase must earn its way onto the
+  // list by being a real false positive, not merely by avoiding a blacklist.
   const AND_THEN = /\band\s+then\b/i;
   const AND_PRONOUN_OBJECT = /\band\s+[a-z]+\s+(it|them|him|her|us|this|that|these|those)\b/i;
   const AND_DETERMINER_OBJECT = /\band\s+[a-z]+\s+(the|a|an|its|their|his|her|your|our|this|that|these|those)\b/i;
-  const AND_SHORT_NOUN_TAIL = /\band\s+([a-z]+)((?:\s+[a-z]+){0,2})\W*$/i;
-  const BARE_ACTION_VERB = /^(stops?|starts?|restarts?|reboots?|drains?|deletes?|removes?|drops?|kills?|terminates?|purges?|flushes?|clears?|notifies?|escalates?|checks?|confirms?|verifies?|validates?|records?|obtains?|identifies?|waits?|opens?|closes?|selects?|scales?|disables?|enables?|pauses?|resumes?|rotates?|revokes?|reissues?|invalidates?|pages?|alerts?|contacts?|schedules?|isolates?|quarantines?|reverts?|applies?|deploys?|redeploys?|reloads?|refreshes?|disconnects?|reconnects?|updates?|acknowledges?)$/i;
+  const AND_SHORT_NOUN_TAIL = /\band\s+([a-z]+(?:\s+[a-z]+){0,2})\W*$/i;
+  const SHORT_TAIL_ALLOWLIST = new Set([
+    "owning team", "consumer group", "restart count", "current restart count",
+    "monitoring dashboard", "logs",
+  ]);
+  // A comma-separated list is only a list if every item is a bare noun
+  // phrase. A segment that itself reads as "verb + determiner" ("drain the
+  // queue") is its own command, which means the whole sentence is a chain
+  // of imperatives, not one imperative with a list object - "Stop the
+  // consumer, drain the queue, and restart consumers." must still flag
+  // even though it has two commas before "and". The opening segment is
+  // excluded from this check: "Record THE current replica count, ..."
+  // always looks like "verb + determiner" too, for any imperative sentence.
+  const VERB_DETERMINER_SEGMENT = /^\s*(?:and\s+)?[a-z]+\s+(the|a|an)\b/i;
   const isCompound = (s: string): boolean => {
     if (!/^[A-Z][a-z]+\b[^.]*\band\b\s+[a-z]+\b/.test(s) || wordCount(s) <= 8) return false;
     if (AND_THEN.test(s) || AND_PRONOUN_OBJECT.test(s) || AND_DETERMINER_OBJECT.test(s)) return true;
+
     const andIndex = s.search(/\band\b/i);
     const commasBeforeAnd = (s.slice(0, andIndex).match(/,/g) || []).length;
-    if (commasBeforeAnd >= 2) return false; // Oxford-comma list: "A, B, and C"
+    if (commasBeforeAnd >= 2) {
+      const laterSegmentIsCommand = s.split(",").slice(1).some((seg) => VERB_DETERMINER_SEGMENT.test(seg));
+      if (!laterSegmentIsCommand) return false; // Oxford-comma list: "A, B, and C"
+    }
+
     const tail = s.match(AND_SHORT_NOUN_TAIL);
-    if (tail && !BARE_ACTION_VERB.test(tail[1])) return false; // short noun phrase to the end
+    if (tail) {
+      const phrase = tail[1].toLowerCase().replace(/\s+/g, " ").trim();
+      const firstWord = phrase.split(" ")[0];
+      if (/ing$/.test(firstWord) || SHORT_TAIL_ALLOWLIST.has(phrase)) return false;
+    }
     return true;
   };
   const compound = sentences.filter(isCompound);

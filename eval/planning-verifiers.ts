@@ -38,38 +38,30 @@ export function parseSteps(text: string, untilHeading?: RegExp): Step[] {
   let current: Step | null = null;
   let headingStep = false; // current step came from a "### Step N:" heading; prose beneath belongs to it
 
-  // A numbered list under an "Invariants", "Constraints" or "Overview"
-  // heading is preamble, not steps, but only when a later non-preamble
-  // heading introduces the real plan. Consecutive preamble headings are one
-  // preamble. A "Business Rules" / "Naming Rules" / "Splitting Logic"
-  // heading is the same kind of definitional section: a plan that numbers
-  // its data-transformation rules 1-4 under such a heading, then starts the
-  // real steps at "1" again under a "Release" heading, must not have the
-  // rules counted as steps 1-4 that outrank the real ones.
-  //
-  // A keyword allowlist for "definitional" headings chases the model's
-  // wording forever: "Release 2: business logic", "Release 2: move
-  // business logic to the new columns" and "Release 2: read path and
-  // integrity rules" all matched the allowlist and hid a real step (an
-  // early, wrong read switch) as if it were a naming-rules preamble. A
-  // heading that names a release/phase/deploy/step/stage is never a
-  // preamble, full stop, regardless of what else it says; that check runs
-  // first and wins. Only once a heading clears it does the definitional
-  // keyword list decide whether the heading is a data-definition section.
-  const RELEASE_PHASE_WORD = /\b(releases?|r\d+|phases?|deploy(ment)?s?|steps?|stages?|migration steps?)\b/i;
-  const PREAMBLE_KEYWORDS = /\b(invariants?|constraints?|assumptions?|overview|context|goals?|background|summary|ground rules?|(business|naming|splitting|parsing|transformation|integrity) (rules?|logic))\b/i;
-  const isPreambleHeading = (headingLine: string): boolean =>
-    !RELEASE_PHASE_WORD.test(headingLine) && PREAMBLE_KEYWORDS.test(headingLine);
+  // A numbered list before the plan's real release/phase/step structure
+  // starts - "Invariants", "Business Rules", a naming-rules section, an
+  // architecture overview - is preamble, not steps. A keyword allowlist for
+  // "definitional" headings chases the model's wording forever ("Business
+  // Rules", "Naming Rules", "Splitting Logic", "Business logic cutover",
+  // "Cutover: naming rules applied to reads", ...: every paraphrase needs
+  // its own list entry, and a release/phase disqualifier alone still let
+  // "Release 2: business logic" hide a real step). The structural fact that
+  // actually distinguishes them: a plan's real steps always live under a
+  // heading that names a numbered release, phase or step ("Release 1",
+  // "Phase 2", "Step 3" - every real plan we've seen marks its chronology
+  // this way, in a markdown heading, somewhere). So: find the *first*
+  // heading in the whole document that names one, and treat everything at
+  // or after it as real content; everything strictly before it - no matter
+  // what its own heading text says, paraphrase or not - is preamble. A
+  // document with no such heading anywhere skips nothing (there's no
+  // reference point to be "before").
+  const PHASE_MARKER_HEADING = /\b(releases?|phases?|steps?)\s+\d+\b/i;
   const STEP_HEADING = /^#{1,6}\s+(?:\*\*)?step\s+(\d+)\b[:.)]?\s*(.*)$/i;
   const headingLines = lines.map((l, i) => (/^#{1,6}\s/.test(l.trim()) ? i : -1)).filter((i) => i >= 0);
   const skip = new Set<number>();
-  for (let h = 0; h < headingLines.length; h++) {
-    if (!isPreambleHeading(lines[headingLines[h]].trim())) continue;
-    let k = h + 1;
-    while (k < headingLines.length && isPreambleHeading(lines[headingLines[k]].trim())) k++;
-    if (k >= headingLines.length) continue;
-    for (let i = headingLines[h] + 1; i < headingLines[k]; i++) skip.add(i);
-    h = k - 1;
+  const firstPhaseHeading = headingLines.find((li) => PHASE_MARKER_HEADING.test(lines[li].trim()));
+  if (firstPhaseHeading !== undefined) {
+    for (let i = 0; i < firstPhaseHeading; i++) skip.add(i);
   }
 
   const flush = () => { if (current) { steps.push(current); current = null; headingStep = false; } };
@@ -180,14 +172,14 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
     // columns instead of saying "both" or "all three"; "together" alone is
     // not the tell, though - "writes first_name and last_name together on
     // every save" only ever mentions the new columns, so it is a plain
-    // single-column-family write, not a dual-write. The word that matters is
-    // the OLD column: "together" only means dual-write when fullname
-    // (underscores are stripped above) is itself a write target, not merely
-    // named as the source being parsed ("writes first_name and last_name,
-    // parsed FROM full_name, together" reads full_name, it doesn't write
-    // it) - excluding "from" from the gap keeps the match from crossing
-    // into a source reference to reach "together".
-    /\b(dual[- ]?writ(e|es|ing)|write[s]? (to )?both|writ(e|es|ing) (both|all three|the new and|old and new)|additionally[^.]{0,30}\bwrit|writ(e|es|ing)\b(?:(?!\bfrom\b)[^.]){0,60}\bfullname\b(?:(?!\bfrom\b)[^.]){0,60}\btogether\b)/.test(t) &&
+    // single-column-family write, not a dual-write. fullname must be a
+    // column-list item written together with the others - immediately
+    // after the verb (only a bare "to" in between) - not a source the new
+    // columns are derived FROM: "writes first_name and last_name, split
+    // out of full_name, together" and "... based on full_name together"
+    // both name full_name as the split/derivation source, several words
+    // and a preposition away from the verb, not as something written.
+    /\b(dual[- ]?writ(e|es|ing)|write[s]? (to )?both|writ(e|es|ing) (both|all three|the new and|old and new)|additionally[^.]{0,30}\bwrit|writ(e|es|ing)\b(?:\s+to)?(?:(?!\b(from|of|based|split|derived|parsed)\b)[^.]){0,20}\bfullname\b[^.]{0,60}\btogether\b)/.test(t) &&
     !/\bwrite only\b[^.]{0,20}\bfull_name\b/.test(t));
   const backfillAsVerb = asAction(/\b(backfill|backfills)\b/, /^/, /^[^.]{0,4}\b(later|job)\b.*\b(will|to be)\b/);
   const backfillAsObject = asAction(/\b(run|runs|execute|executes|perform|performs|launch|launches|start|starts|kick off)\b/, /^[^.]{0,50}\b(backfill|existing rows|historical rows)\b/, /\b(caught|filled|handled|covered) by\b/);
@@ -208,21 +200,46 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
   // what's actually being talked about - "the write lock is removed" names
   // no write-path/write at all, and "the write path is NOT exclusively
   // first_name" is negated. Neither form previously checked either.
+  // Anchored to the two label/title shapes the real artifacts actually
+  // use, not a generic "writes...removed anywhere" scan: "Deploy
+  // Application Code with Old Writes Removed" (a heading title puts "with"
+  // right before the participial phrase) and "Write Path: Exclusively
+  // first_name and last_name." (a colon-led label). A forward reference or
+  // a conditional ("Monitor error rates UNTIL old writes are removed.",
+  // "Plan a later release WHERE writes are removed.", "UNTIL the write
+  // path is exclusively first_name, keep dual writes.") states a future or
+  // hypothetical condition, not a completed cutover, and never takes
+  // either shape - "with" doesn't precede a bare forward-referenced
+  // "removed", and "write path" isn't followed by a label colon in a
+  // subordinate clause - so anchoring to the real shape rejects every
+  // forward reference without a separate keyword scan. A negation/
+  // forward-reference word check is kept anyway, in front of the match,
+  // as a second line of defense.
+  const FORWARD_REF = /\b(until|once|before|after|when|where|if)\b/i;
   const stopWriteObjectFirst = (sentence: string): boolean => {
-    // "old writes removed", "Old Writes Removed" (a heading title). The
-    // object must be the write(s) themselves, adjacent to "removed" with
-    // only an optional "is"/"are": "the write LOCK is removed" removes a
-    // lock, not a write, and the plural/gerund form (not bare "write")
-    // keeps a compound noun like "write lock" from qualifying at all.
-    const removedMatch = sentence.match(/\bwrit(es|ing)\b\s*(?:is\s+|are\s+)?removed\b/);
-    if (removedMatch && !NEG.test(sentence.slice(0, removedMatch.index ?? 0))) return true;
+    // "... with Old Writes Removed (Release 3 ...)". The object must be
+    // the write(s) themselves, adjacent to "removed" with only an optional
+    // "is"/"are": "the write LOCK is removed" removes a lock, not a write,
+    // and the plural/gerund form (not bare "write") keeps a compound noun
+    // like "write lock" from qualifying at all.
+    const removedMatch = sentence.match(/\bwith\b[^.]{0,15}\bwrit(es|ing)\b\s*(?:is\s+|are\s+)?removed\b/);
+    if (removedMatch) {
+      const before = sentence.slice(0, removedMatch.index ?? 0);
+      if (!NEG.test(before) && !FORWARD_REF.test(before)) return true;
+    }
 
-    // "Write Path: Exclusively first_name and last_name." The negation can
-    // sit *inside* the match ("the write path is NOT exclusively
-    // first_name"), so check the gap between "write path" and "exclusively"
-    // specifically, not just the text before the whole match.
-    const pathMatch = sentence.match(/\bwrite path\b([^.]{0,20})\bexclusively\b[^.]{0,20}\b(firstname|lastname|new columns?)\b/);
-    if (pathMatch && !/\b(not|never|isn't|is not|no longer)\b/i.test(pathMatch[1])) return true;
+    // "Write Path: Exclusively first_name and last_name." - a label, not a
+    // clause: the colon is what makes "write path" the subject of its own
+    // sentence fragment rather than the object of some other verb
+    // ("Until THE WRITE PATH is exclusively..."). The negation can sit
+    // *inside* the match ("the write path is NOT exclusively first_name"),
+    // so check the gap between the colon and "exclusively" specifically,
+    // not just the text before the whole match.
+    const pathMatch = sentence.match(/\bwrite path\s*:\s*([^.]{0,10})\bexclusively\b[^.]{0,20}\b(firstname|lastname|new columns?)\b/);
+    if (pathMatch) {
+      const before = sentence.slice(0, pathMatch.index ?? 0);
+      if (!/\b(not|never|isn't|is not|no longer)\b/i.test(pathMatch[1]) && !NEG.test(before) && !FORWARD_REF.test(before)) return true;
+    }
 
     return false;
   };
@@ -243,13 +260,45 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
   // long enough to reach a same-clause compound object, short enough not to
   // reach into an unrelated second clause's object.
   const DROP_VERB = /\b(drop|drops|delete|deletes|remove|removes)\b/g;
-  const DROP_OBJECT = /^[^.]{0,60}\b(columns?|fields?)\b/;
-  // The ORM alternative's gap after "from" must stay short: "from the ORM
-  // model" is a same-clause reject, but "from the database and the ORM
-  // model" names the database *first* - a real drop, with a courtesy
-  // mention of the ORM too - and must not be swallowed by a gap wide enough
-  // to reach past "and the database" to "the orm model".
-  const DROP_REJECT = /^[^.]{0,20}\bfrom\b[^.]{0,40}\b(write|read) path\b|^[^.]{0,20}\bfrom\b[^.]{0,15}\b(the )?(orm( model)?|schema cache)\b/;
+  // "fullname" gets its own, short window: "drop any default, trigger,
+  // index, or view that DEPENDS ON fullname" names fullname as what an
+  // ancillary object references, many words after the verb, not as what's
+  // being dropped. It must not cross "writ" ("remove every WRITE to
+  // fullname" is the stop-write step, not a drop), and what follows
+  // "fullname" must look like the end of an object, not fullname modifying
+  // something else: "remove fullname FROM ALL WRITE PATHS" stops writing
+  // it, "remove the fullname INPUT SHAPE" removes an API field - neither
+  // drops the column. A clause boundary, "and" (a list continues: "fullname
+  // and its indexes"), or "column"/"field" (fullname modifies the object
+  // instead of being it) are the only things allowed to follow.
+  // "columns?|fields?" keeps the wider window - it still needs to reach a
+  // same-clause compound object like "drop users.full_name and its
+  // old-column-specific indexes".
+  const DROP_OBJECT = /^[^.]{0,60}\b(columns?|fields?)\b|^(?:(?!\bwrit)[^.]){0,20}\bfullname\b(?=[,;]|\s+and\b|\s+columns?\b|\s+fields?\b|\W*$)/;
+  // The object must be the column itself, not something merely mentioning
+  // "column" as the thing another object sits ON: "Drop the leftover index
+  // on the old column." drops an index, not the column, and every plan
+  // that includes it as a later, correctly-timed decoy would otherwise let
+  // that later index-drop be counted as *the* real column drop. Reject
+  // when the immediate object (right after the verb) is an index,
+  // constraint or key rather than the column.
+  const DROP_NOT_COLUMN_ITSELF = /^[^.]{0,20}\b(index(es)?|constraints?|keys?)\b/;
+  // The ORM reject only applies when the verb's window names no database
+  // target at all: "Remove the column from the ORM model" (Opus's real
+  // phrasing) never mentions a database, so it's the application-layer
+  // step told from the model's side, not the migration. "Drop the column
+  // from the ORM and the database." and "Delete the field from the ORM
+  // model and from Postgres." both also name a real database target in
+  // the same window, so they are the real drop with a courtesy mention of
+  // the ORM, not the other way around - the gap alone can't tell those
+  // apart (both fit "from the ORM" within any workable window), so the
+  // reject must check for the *absence* of a database target, not merely
+  // the gap after "from".
+  const DROP_ORM_ONLY = /^[^.]{0,20}\bfrom\b[^.]{0,15}\b(the )?(orm( model)?|schema cache)\b/;
+  const DROP_DB_TARGET = /\b(database|db|table|postgres|mysql|schema migration|alter table)\b/i;
+  const DROP_REJECT = (after: string): boolean =>
+    /^[^.]{0,20}\bfrom\b[^.]{0,40}\b(write|read) path\b/.test(after) ||
+    (DROP_ORM_ONLY.test(after) && !DROP_DB_TARGET.test(after));
   const sentenceHasColumnDrop = (sentence: string): boolean => {
     const verbMatches = [...sentence.matchAll(DROP_VERB)];
     for (let i = 0; i < verbMatches.length; i++) {
@@ -259,7 +308,8 @@ export async function verifyMigrationPlan(workspaceDir: string): Promise<VerifyR
       if (NEG.test(before)) continue;
       const nextVerbIdx = verbMatches[i + 1]?.index ?? Math.min(sentence.length, idx + m[0].length + 90);
       const after = sentence.slice(idx + m[0].length, nextVerbIdx);
-      if (DROP_REJECT.test(after)) continue;
+      if (DROP_NOT_COLUMN_ITSELF.test(after)) continue;
+      if (DROP_REJECT(after)) continue;
       if (DROP_OBJECT.test(after)) return true;
     }
     return false;
