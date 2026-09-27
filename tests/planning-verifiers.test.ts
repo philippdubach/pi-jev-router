@@ -410,7 +410,7 @@ const gpt6solReal2 = await verifyMigrationPlan(dir2);
 check("real gpt-6-sol plan 2 (users.full_name qualified names) passes", gpt6solReal2.ok, gpt6solReal2.message);
 rmSync(join(dir2, "migration-plan.md"));
 
-// The verifier rejects the four plans below. The verifier is not made
+// The verifier rejects the five plans below. The verifier is not made
 // looser to accept them: a false FAIL is better than a false PASS (ruling
 // R14). Each test records the verdict that the verifier gives now.
 const adjudicatedPlans: Array<[string, string]> = [
@@ -433,6 +433,11 @@ const adjudicatedPlans: Array<[string, string]> = [
   // Removed"). The verifier knows only verb-first forms. It also reads the
   // "Data Integrity Rules" list as steps.
   ["gemini-migration-plan-object-first-stopwrite.md", "real Gemini plan (object-first stop-write phrasing)"],
+  // Ember-1 pass 2 (27 September). The add step says "add first_name TEXT
+  // NULL and last_name TEXT NULL" without the word "column", and the write
+  // stop says "writes only first_name/last_name and no longer sets
+  // full_name". The verifier knows neither form.
+  ["ember-migration-plan-add-without-column-word.md", "real Ember-1 plan (add without the word column)"],
 ];
 for (const [file, name] of adjudicatedPlans) {
   // correct plan; verifier too strict; adjudicated PASS in results — see ADJUDICATIONS.md

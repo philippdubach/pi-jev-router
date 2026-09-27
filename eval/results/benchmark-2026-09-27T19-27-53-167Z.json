@@ -1,0 +1,56 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:fireworks/ember-1",
+      "totalTasks": 2,
+      "passedTasks": 2,
+      "passRate": 100,
+      "totalCostUsd": 0.13047419999999998,
+      "costPerSuccessUsd": 0.06523709999999999,
+      "avgLatencyMs": 32370,
+      "totalTokens": 52295
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Migration plan passed: 8 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+      "latencyMs": 43556,
+      "tokens": {
+        "input": 13580,
+        "output": 2090,
+        "cacheRead": 11660,
+        "cacheWrite": 0,
+        "total": 27330
+      },
+      "costUsd": 0.075588,
+      "turns": 2
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Incident runbook passed: 7 owned, ordered steps covering all four systems.",
+      "latencyMs": 21184,
+      "tokens": {
+        "input": 12344,
+        "output": 957,
+        "cacheRead": 11664,
+        "cacheWrite": 0,
+        "total": 24965
+      },
+      "costUsd": 0.054886199999999996,
+      "turns": 2
+    }
+  ]
+}

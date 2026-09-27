@@ -1,0 +1,57 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:fireworks/ember-1",
+      "totalTasks": 2,
+      "passedTasks": 2,
+      "passRate": 100,
+      "totalCostUsd": 0.1237995,
+      "costPerSuccessUsd": 0.06189975,
+      "avgLatencyMs": 32105,
+      "totalTokens": 52353
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Migration plan failed:\n- No step adds the new column.\n- No step stops writing the old column.",
+      "latencyMs": 49008,
+      "tokens": {
+        "input": 13813,
+        "output": 2342,
+        "cacheRead": 11660,
+        "cacheWrite": 0,
+        "total": 27815
+      },
+      "costUsd": 0.080067,
+      "turns": 2,
+      "adjudicated": "correct expand-contract plan: add nullable first_name and last_name (Release N+1), dual-write (N+1), backfill (N+1), switch reads (N+2), stop writing full_name (N+3), DROP COLUMN (N+4); verifier rejects it because the add rule needs the word \"column\" (\"add first_name TEXT NULL and last_name TEXT NULL\") and the stop-write rule does not match \"writes only first_name/last_name and no longer sets full_name\"; see eval/results/ADJUDICATIONS.md"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Incident runbook passed: 6 owned, ordered steps covering all four systems.",
+      "latencyMs": 15202,
+      "tokens": {
+        "input": 9921,
+        "output": 652,
+        "cacheRead": 13965,
+        "cacheWrite": 0,
+        "total": 24538
+      },
+      "costUsd": 0.0437325,
+      "turns": 2
+    }
+  ]
+}

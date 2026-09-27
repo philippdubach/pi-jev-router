@@ -1,0 +1,136 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:fireworks/ember-1",
+      "totalTasks": 6,
+      "passedTasks": 6,
+      "passRate": 100,
+      "totalCostUsd": 0.42458850000000004,
+      "costPerSuccessUsd": 0.07076475,
+      "avgLatencyMs": 27244.666666666668,
+      "totalTokens": 386931
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 23138,
+      "tokens": {
+        "input": 11035,
+        "output": 1053,
+        "cacheRead": 39630,
+        "cacheWrite": 0,
+        "total": 51718
+      },
+      "costUsd": 0.06078900000000001,
+      "turns": 4
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 23807,
+      "tokens": {
+        "input": 13743,
+        "output": 1095,
+        "cacheRead": 50122,
+        "cacheWrite": 0,
+        "total": 64960
+      },
+      "costUsd": 0.07269060000000001,
+      "turns": 5
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 25 sentences, all <= 20 words, 14 imperative steps.",
+      "latencyMs": 20593,
+      "tokens": {
+        "input": 12594,
+        "output": 859,
+        "cacheRead": 36284,
+        "cacheWrite": 0,
+        "total": 49737
+      },
+      "costUsd": 0.0615522,
+      "turns": 4
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 33830,
+      "tokens": {
+        "input": 13952,
+        "output": 1485,
+        "cacheRead": 63370,
+        "cacheWrite": 0,
+        "total": 78807
+      },
+      "costUsd": 0.08314200000000001,
+      "turns": 6
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 28724,
+      "tokens": {
+        "input": 10844,
+        "output": 1045,
+        "cacheRead": 63783,
+        "cacheWrite": 0,
+        "total": 75672
+      },
+      "costUsd": 0.0673419,
+      "turns": 6
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:fireworks/ember-1",
+      "modelUsed": "fireworks/ember-1",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 33376,
+      "tokens": {
+        "input": 13989,
+        "output": 1462,
+        "cacheRead": 50586,
+        "cacheWrite": 0,
+        "total": 66037
+      },
+      "costUsd": 0.0790728,
+      "turns": 5
+    }
+  ]
+}

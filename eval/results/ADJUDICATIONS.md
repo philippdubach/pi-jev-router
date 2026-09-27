@@ -21,7 +21,7 @@ Each fix has a negative control (a wrong plan that must fail) and a positive con
 
 A future run of the same model can write the same phrasing. The verifier will then give FAIL again. A person must read that artifact and adjudicate it, or leave the FAIL.
 
-Only the 26 September runs were re-read under this standard. Older rows, for
+Only the 26 and 27 September runs were re-read under this standard. Older rows, for
 example the two `z-ai/glm-5.3-flash` `write_strict_ste` FAILs from
 2026-09-22 and 2026-09-25, were not re-read and keep the verifier's verdict.
 
@@ -38,6 +38,7 @@ example the two `z-ai/glm-5.3-flash` `write_strict_ste` FAILs from
 | `benchmark-2026-09-26T17-12-29-320Z.json` | `openai/gpt-6-sol` | `write_strict_ste` | `<tmp>/pi-jev-benchmarks/bench-muimx671/model_openai_gpt-6-sol/write_strict_ste/runbook.md` | `tests/fixtures/gpt6sol-runbook-list-object.md` | The compound-instruction rule flags a sentence of more than 8 words with "and" before another word. It flags one verb with a list object: "Identify the consumer service, queue, deployment environment, and owning team." |
 | `benchmark-2026-09-26T17-23-43-100Z.json` | `openai/gpt-6-sol` | `write_strict_ste` | `<tmp>/pi-jev-benchmarks/bench-muinrzea/model_openai_gpt-6-sol/write_strict_ste/runbook.md` | `tests/fixtures/gpt6sol-runbook-list-object-2.md` | Same rule. Example: "Identify the consumer deployment, queue, environment, and consumer group." |
 | `benchmark-2026-09-26T17-24-09-378Z.json` | `openai/gpt-6-sol` | `write_strict_ste` | `<tmp>/pi-jev-benchmarks/bench-muinshha/model_openai_gpt-6-sol/write_strict_ste/runbook.md` | `tests/fixtures/gpt6sol-runbook-list-object-3.md` | Same rule. Example: "Identify the consumer deployment, queue, environment, and owning team." |
+| `benchmark-2026-09-27T19-31-22-756Z.json` | `fireworks/ember-1` | `plan_expand_contract` | `<tmp>/pi-jev-benchmarks/bench-muk7qyay/model_fireworks_ember-1/plan_expand_contract/migration-plan.md` | `tests/fixtures/ember-migration-plan-add-without-column-word.md` | The add rule needs the word "column"; the plan says "add `first_name TEXT NULL` and `last_name TEXT NULL`". The stop-write rule does not match "writes only `first_name`/`last_name` and no longer sets `full_name`". The order is correct: add, dual-write and backfill in N+1, reads in N+2, write stop in N+3, drop in N+4. |
 
 One more row was rescored, not adjudicated: `benchmark-2026-09-26T16-59-18-462Z.json`, `openai/gpt-6-sol`, `plan_expand_contract`. The verifier passes it with the qualified-name dot fix. Its fixture, `tests/fixtures/gpt6sol-migration-plan-qualified-names-2.md`, is the positive control for that fix.
 

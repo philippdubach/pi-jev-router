@@ -168,9 +168,9 @@ fails on phrasing, a human reads it and records an adjudication in
 `eval/results/ADJUDICATIONS.md`. That file also lists the known holes that
 the strict verifiers share with earlier versions.
 
-### Results, 26 September 2026
+### Results, 26 and 27 September 2026
 
-Scored the way the router reads them. Total spend $5.52.
+Scored the way the router reads them. Total spend $5.52 on 26 September.
 
 | Model | Planning | Hard code | Writing |
 |---|---|---|---|
@@ -178,8 +178,9 @@ Scored the way the router reads them. Total spend $5.52.
 | `openai/gpt-6-sol` | 4/4 | 10/10 | 6/6 |
 | `google/gemini-3.8-flash` | 2/4 | 2/10 | 2/2 |
 | `openai/gpt-5.6-luna` | — | — | 4/4 |
+| `fireworks/ember-1` (27 Sep) | 4/4 | 10/10 | 2/2 |
 
-Seven of these rows are adjudicated. Runner pass counts differ where a run
+Eight rows are adjudicated (one of them Ember-1's). Ember-1 cost $1.08 for 16 runs. Runner pass counts differ where a run
 went over the turn budget or timed out, mostly for `google/gemini-3.8-flash`.
 Earlier runs, from 20 to 25 September, are in `eval/results/`.
 
@@ -198,6 +199,10 @@ Earlier runs, from 20 to 25 September, are in `eval/results/`.
 - **A model with no intelligence index** (for example `fireworks/ember-1`)
   can take planning on 4 or more measured planning runs, all passed. No
   index line can apply to it otherwise.
+  Ember-1 now qualifies. It is on the planning frontier but loses to
+  `anthropic/claude-opus-5.5` under the planning weights. On code,
+  `openai/gpt-6-sol` dominates it: the same 10 of 10 from a higher prior,
+  at a lower estimated cost.
 
 ## Subscription routing
 
