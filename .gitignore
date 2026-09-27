@@ -1,6 +1,7 @@
 node_modules/
 *.log
 .DS_Store
-config/policy.local.json.worktrees/
+config/policy.local.json
+.worktrees/
 .superpowers/
 eval/classifier-set.candidates.jsonl

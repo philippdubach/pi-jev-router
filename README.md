@@ -1,189 +1,90 @@
 # pi-jev-router: a minimal Pareto-optimal OpenRouter model router for pi, based on Jev
 
-Jev-classified model routing for pi.
+pi-jev-router is a pi extension. It classifies each task with Jev (TypeSafe
+System One, called through OpenRouter) and routes the task to an OpenRouter
+model. The pick balances quality, cost and latency, and follows a role
+policy for planning, code and writing.
 
-## Model rules
+The default mode is shadow: the router records what it would pick and does
+not switch. Use `/router auto` or `/router auto --dry-run N` to let it switch.
 
-The router applies the role policy as an eligibility filter, then picks
-inside the eligible set by a weighted value function.
+## How a pick is made
 
-- **Planning** — only models with an Artificial Analysis intelligence index
-  at or above 48.5 are eligible.
-- **Writing** — only OpenAI models are eligible, and only if they have a
-  measured writing Elo of at least 1760 or at least 3 measured writing runs.
-- **Code** — no role restriction. Every feasible model is eligible.
+1. **Continuation check.** A bare continuation ("continue", "go on", "keep
+   going", "yes", "ok", "do it", …) keeps the current model and skips Jev.
+   A continuation after an abstain or a manual pin classifies normally.
+2. **Classification.** One Jev call per task, with a bounded context block
+   from the session and the repository. Five questions: category,
+   complexity, risk, brief and decompose. The categories include `planning`
+   and `writing`, so prose and planning tasks do not route as code.
+3. **Work kind.** The category and a few text rules map the task to
+   planning, code, writing or other. A short continuation that Jev calls
+   `unclear` inherits the previous work kind.
+4. **Abstain.** If Jev is confident (0.7 or more) that the brief needs
+   clarification, the router does not switch. The current model asks.
+5. **Eligibility.** Hard gates remove infeasible models: no tool support,
+   context too small, a zero or sentinel price, an expired preview, a
+   measured pass rate under the quality floor (0.65), and, for risk 2 or
+   higher, fewer than three measured runs. Then the role policy applies
+   (see below). If nothing is left, the gates relax in a fixed order and
+   the ledger records which one relaxed.
+6. **Frontier and pick.** The router builds the Pareto frontier over
+   quality, cost and latency. A weighted value function picks from it:
+   quality minus cost and latency, weighted by work kind and by complexity
+   (a hard task weighs cost less). The knee of the frontier is computed and
+   recorded as `kneeId` for diagnostics only.
 
-Inside the eligible set, the router computes a Pareto frontier over quality,
-cost and latency, then scores each frontier member with a weighted value
-function: quality minus cost and latency, scaled by role and by task
-complexity (harder tasks weigh cost less). That score picks the model. The
-frontier's knee point — the member farthest from the chord joining the
-cheapest and dearest models — is still computed and reported, but only as a
-diagnostic; it no longer makes the pick, because it ignores the role and
-complexity weights.
+**Quality** is the measured pass rate from `eval/results`, smoothed toward
+a prior. The prior is the Artificial Analysis index (EQ-Bench Creative
+Writing Elo for writing), mapped onto the range of measured pass rates, so
+a measured and an unmeasured model compare on one scale. A model that lists
+a sub-index as 0 falls back to its intelligence rank. Tasks with complexity
+2 or higher read the hard-suite evidence once a model has two hard runs.
 
-Bare continuations ("continue", "go on", "keep going", "yes", …) keep the
-current model and skip the classifier call. A continuation after an abstain
-or a pin classifies normally instead of keeping an empty pick.
+**Cost** is a per-task estimate from catalogue prices, replaced by the
+measured mean as runs accumulate. **Latency** uses measured means when they
+exist.
 
-Hard tasks (complexity at or above 2) read a hard-suite evidence cell instead
-of the overall one, once enough hard runs exist. Quality priors — the
-Artificial Analysis rank for an unmeasured model, EQ-Bench Elo for writing —
-are calibrated onto the same scale as the measured pass rate, so a measured
-and an unmeasured model compare fairly.
+## Role policy
 
-Quality blends recorded runs from `eval/results` with the Artificial Analysis
-index. Writing quality uses the EQ-Bench Creative Writing v3 Elo in
-`src/writing-prior.ts` instead, because a general intelligence index says
-nothing about prose. Cost is a per-task estimate from catalogue prices,
-replaced by recorded mean cost as runs accumulate. Latency uses recorded means
-when they exist.
+| Work kind | Eligible models | Thinking |
+|---|---|---|
+| Planning | Artificial Analysis intelligence index of 48.5 or more | high |
+| Code | every feasible model | medium |
+| Writing | OpenAI models with a writing Elo of 1760 or more, or 3 or more measured writing runs | low |
+| Other | every feasible model | medium |
 
-There is one selection policy. `src/selector.ts` holds a small fallback table
-for the case where the catalog cannot be fetched and no frontier exists.
+Writing turns also get the Humanizer and Simplified Technical English (STE)
+directive. The thresholds sit in measured gaps; `src/selector.ts` records
+each gap next to its constant.
 
-Each ledger row records the loaded `routerVersion` and the `activeModel` that
-ran. `/router status` compares the loaded version against the version on
-disk and warns to restart pi when they differ. A long session also reloads
-the catalog and the evidence periodically, instead of holding them fixed for
-the life of the process.
-
-Writing tasks get STE and Humanizer rules. Code tasks run unit tests.
-Planning tasks get a structure check.
-
-## Subscription routing
-
-Off by default. The frontier picks the model; this only changes how that model
-is reached.
-
-```text
-/router subscription openai-codex     route through a logged-in plan
-/router subscription off              back to metered routes
-/router subscription                  show status and cooldowns
-```
-
-A plan route is best effort. A ChatGPT account does not support every Codex
-model, and a plan can hit its usage limit mid-session. Probed on 22 and 25
-September: three Codex models were unsupported on this plan and the other
-three were at their usage limit both times, so the route has not yet served
-a request. Both refusals put the
-route on a cooldown and fall back to the metered route: unsupported for 30
-days, usage limit for an hour, anything else for ten minutes.
-
-Anthropic is a different case. Pi lists the same price on both routes, and pi's
-docs state that third-party harness usage draws from extra usage billed per
-token rather than plan limits. Enabling it changes the invoice, not the cost.
+On the current catalog and evidence, planning routes to
+`anthropic/claude-opus-5.5`, code to `inclusionai/ling-3.0-flash` and
+writing to `openai/gpt-5.6-luna`.
 
 ## Commands
 
 ```text
-/router           show status
-/router shadow    recommend only (default)
-/router auto      switch models per task
+/router                    show status, the loaded version and the ledger path
+/router shadow             recommend only (default)
+/router auto               switch models per task
 /router auto --dry-run N   switch for N tasks, then return to shadow with a summary
-/router off       stop routing
-/router frontier  show the frontier for the last decision
-/router pin <id>  force a model
-/router pin off   release the pin
-/router budget <usd>
+/router off                stop routing
+/router frontier           show the frontier for the last decision
+/router pin <id>           force a model; /router pin off releases it
+/router budget <usd>       session spend cap for automatic switching
 /router subscription <provider,...> | off
-/router test      classify a sample task and show the pick
+/router test               classify a sample task and show the pick
 ```
 
-## Benchmarks
+`/chief start | board | verify | events | accept | cancel` manages
+dispatched tasks. The `dispatch_task` tool sends a subtask to an isolated
+worker. The worker gets the same frontier pick for its role, runs in its own
+Git worktree, and its changes merge only when `verifierCommand` exits 0.
 
-```bash
-npm run bench                    # fixed baseline vs frontier router
-npm run bench -- --all           # adds the pinned role arm as a third control
-npm run bench -- --hard          # only the discriminating tasks
-npm run bench -- --suite         # every task
-npm run bench -- --models=a,b    # measure named models directly
-```
-
-The original five tasks were passed by every model tried, so their pass rates
-carried no quality signal. `--hard` adds three tasks with a specific failure
-mode: a cache stampede under concurrent misses, a rename that must reach a
-barrel export and a string-keyed registry, and a runbook under hard
-sentence-length and voice limits. Each verifier was checked against both the
-starting state and a correct solution.
-
-`--ceiling` adds three more, scored against tests the model never sees: the
-visible suite is partial and a hidden suite checks the rest of the stated
-specification, so a near-miss such as a truthiness merge or a strict-less-than
-comparison fails.
-
-Those tasks also carry a turn budget. A deterministic test suite is a feedback
-loop, so correctness alone separates almost nothing: every model reached a
-passing state on every code task. What differs is how many attempts it took,
-and each attempt costs money and time. Exceeding the budget is a failure.
-
-Measured over four models, code pass rates ran from 33% to 100% and the writing
-task separated them again. `deepseek-v4-flash-0731` is the clearest case: it
-solved every code task correctly but needed 13, 7 and 6 turns, so its posterior
-fell below its catalog prior.
-
-Five tasks, three code and two non-code, each in an isolated workspace with an
-independent verifier. Last recorded run (`eval/results/`, 2026-09-20).
-Superseded by the 26 September run below; the router no longer uses pinned
-routes or the knee.
-
-| Arm | Pass | Total cost | Cost per success |
-|---|---|---|---|
-| `fixed_frontier` (Sonnet 5) | 5/5 | $0.5722 | $0.1144 |
-| `router_role` (pinned routes) | 5/5 | $1.5732 | $0.3146 |
-| `router_frontier` (knee) | 5/5 | $0.1993 | $0.0399 |
-
-The frontier arm sent all three code tasks to `z-ai/glm-5.3-flash`, planning to
-`anthropic/claude-sonnet-5` and writing to `openai/gpt-5.4-mini`. Classification
-overhead is excluded and five tasks do not establish a general saving rate.
-
-### Benchmark, 26 September 2026
-
-Pass counts by model and task kind (planning / hard code / writing), scored
-the way the router reads evidence: `src/evidence.ts` `scoreRow`, a 12-turn
-budget, a timeout counted as a failure.
-
-| Model | Planning | Hard code | Writing |
-|---|---|---|---|
-| `anthropic/claude-opus-5.5` | 4/4 | 10/10 | 2/2 |
-| `openai/gpt-6-sol` | 4/4 | 10/10 | 6/6 |
-| `google/gemini-3.8-flash` | 2/4 | 2/10 | 2/2 |
-| `openai/gpt-5.6-luna` | — | — | 4/4 |
-
-The runner's own pass counts differ where a run went over the 12-turn budget
-or timed out (`google/gemini-3.8-flash` in particular); the router reads the
-scored numbers above, not the runner's raw `passed` flag.
-
-Total spend: $5.52. Seven rows across these runs were adjudicated: a human
-read the artifact and found it correct where a verifier rule rejected it on
-phrasing. See `eval/results/ADJUDICATIONS.md` for each row and the reason.
-
-### Replay, 26 September 2026
-
-`eval/replay.ts` replayed the 151-row ledger through the selector as built
-(147 rows classified, 4 skipped). Picks by kind:
-
-| Kind | Pick | Count |
-|---|---|---|
-| planning | `anthropic/claude-opus-5.5` | 1 |
-| planning | (abstain, confident clarify) | 5 |
-| code | `inclusionai/ling-3.0-flash` | 24 |
-| code | (abstain, confident clarify) | 16 |
-| writing | `openai/gpt-5.6-luna` | 10 |
-| writing | (abstain, confident clarify) | 1 |
-| other | `z-ai/glm-5.3-flash` | 24 |
-| other | (abstain, confident clarify) | 66 |
-
-Planning picks a top-tier model only, and writing picks an OpenAI model only,
-as the role policy requires. Every abstain is a confident `clarify` brief;
-no other row abstains. Code does not separate by complexity on this ledger:
-the pick is `inclusionai/ling-3.0-flash` from complexity 0.16 to 2.54. This
-matches the benchmark, not a bug in the pick: calibrated code quality spans
-only about 0.90 to 0.96 across measured models, and the hard-suite and
-overall evidence cells track closely, so the value function has little room
-to move the pick on complexity alone.
-
-Live trial: pending (run `/router auto --dry-run 5` after merge).
+The budget counts the main session's model spend, classifier calls and
+dispatched workers. When the budget is reached, the router stops switching
+and warns.
 
 ## Setup
 
@@ -194,12 +95,128 @@ npm install
 Set `OPENROUTER_API_KEY`, or reuse the key stored in `~/.pi/agent/auth.json`.
 Copy `config/models.openrouter.json` into `~/.pi/agent/models.json`.
 
-Auto-load globally:
+Load the extension in every pi session:
+
 ```bash
 mkdir -p ~/.pi/agent/extensions
 ln -sf ~/Documents/GitHub/pi-jev-router ~/.pi/agent/extensions/pi-jev-router
 ```
-Then start `pi` normally (no `-e` required).
+
+Then start `pi` normally. pi loads the extension once per process. After an
+update, restart pi. `/router status` warns when the loaded version differs
+from the checkout on disk.
+
+## Ledger and diagnostics
+
+Every decision is appended to `~/.pi/agent/jev-router/decisions.jsonl`. A
+row records the pick (`recommendation.modelId`), the model that actually ran
+(`activeModel`), the reason, the classifier answers, the first 400
+characters of the context block, the context size and the loaded
+`routerVersion`. A failed ledger write prints one line to stderr and never
+breaks a task.
+
+Each dispatch is recorded with its outcome: verified pass, verifier failed,
+worker error, handshake missing or no verifier. Outcomes are recorded but
+not yet used as evidence, because environment failures cannot yet be told
+apart from work failures.
+
+A long session reloads the catalog after 12 hours and the evidence when a
+new result file appears.
+
+Two offline tools check a change before it goes live:
+
+```bash
+node --experimental-strip-types eval/replay.ts [--rows]   # replay the ledger through the current selector
+node --experimental-strip-types eval/classifier-eval.ts  # work-kind accuracy on eval/classifier-set.jsonl (live, about $0.002)
+```
+
+`eval/replay.ts` makes no model calls. Run it before and after any
+selection change and compare the picks. Replay records are in
+`docs/replay-baseline-2026-09-26.txt` and `docs/replay-after-2026-09-26.txt`.
+
+## Benchmark
+
+```bash
+npm run bench                    # fixed baseline vs frontier router
+npm run bench -- --hard          # hard and ceiling code tasks, strict STE writing
+npm run bench -- --ceiling       # code tasks with hidden tests only
+npm run bench -- --planning      # the two structural planning tasks
+npm run bench -- --suite         # every task
+npm run bench -- --models=a,b    # measure named models directly
+npm run bench -- --task=<id>     # one task
+```
+
+The benchmark calls real models and costs money. Run it on purpose, not per
+commit.
+
+Each task runs in an isolated workspace with an independent verifier.
+Every verifier is checked both ways: it fails the starting state and a
+plausible wrong answer, and it passes a correct answer. Ceiling tasks score
+against tests the model never sees. Planning verifiers check structure: the
+expand-and-contract order for a column migration, and step order and owners
+for an incident runbook.
+
+Evidence is scored when it is read (`src/evidence.ts`): more than 12 turns
+or a timeout counts as a failure.
+
+A verifier is never loosened to pass one artifact. When a correct artifact
+fails on phrasing, a human reads it and records an adjudication in
+`eval/results/ADJUDICATIONS.md`. That file also lists the known holes that
+the strict verifiers share with earlier versions.
+
+### Results, 26 September 2026
+
+Scored the way the router reads them. Total spend $5.52.
+
+| Model | Planning | Hard code | Writing |
+|---|---|---|---|
+| `anthropic/claude-opus-5.5` | 4/4 | 10/10 | 2/2 |
+| `openai/gpt-6-sol` | 4/4 | 10/10 | 6/6 |
+| `google/gemini-3.8-flash` | 2/4 | 2/10 | 2/2 |
+| `openai/gpt-5.6-luna` | — | — | 4/4 |
+
+Seven of these rows are adjudicated. Runner pass counts differ where a run
+went over the turn budget or timed out, mostly for `google/gemini-3.8-flash`.
+Earlier runs, from 20 to 25 September, are in `eval/results/`.
+
+## Open decisions
+
+These follow from the current policy and weights. They are not defects.
+
+- **Planning has one candidate.** Only `anthropic/claude-opus-5.5` is
+  eligible and measured. `openai/gpt-6-sol` passed 4 of 4 planning tasks at
+  about a quarter of the cost, but its intelligence index (47.5) is under
+  the 48.5 line.
+- **Code does not change pick with complexity.** Calibrated code quality
+  spans about 0.87 to 1.0, and the code cost weight does not let a 100x
+  price step buy that difference. `inclusionai/ling-3.0-flash` wins at
+  every complexity.
+- **Over budget, the router stays on the current model**, whatever that
+  model costs.
+
+## Subscription routing
+
+Off by default. The frontier picks the model; this only changes how that
+model is reached.
+
+```text
+/router subscription openai-codex     route through a logged-in plan
+/router subscription off              back to metered routes
+/router subscription                  show status and cooldowns
+```
+
+A plan route is best effort. A ChatGPT account does not support every Codex
+model, and a plan can hit its usage limit mid-session. On 22 and 25
+September, three Codex models were unsupported on this plan and the other
+three were at their usage limit, so the route has not yet served a request.
+A refusal puts the route on a cooldown and falls back to the metered route:
+30 days for an unsupported model, one hour for a usage limit, ten minutes for
+anything else.
+
+Anthropic is a different case. pi lists the same price on both routes, and
+pi's docs state that third-party harness usage draws from extra usage billed
+per token rather than plan limits. Enabling it changes the invoice, not the
+cost.
 
 ## Tests
 
@@ -207,25 +224,26 @@ Then start `pi` normally (no `-e` required).
 npm test
 ```
 
-## Worktree isolation
-
-Workers dispatched via `dispatch_task` execute in isolated Git worktrees:
-- Worker edits code on a separate task branch (`task/<id>`).
-- If `verifierCommand` passes (exit 0), changes merge cleanly into the repository.
-- If verification fails or aborts, the worktree is cleaned up without leaving dirty changes.
-
-## Ledger
-
-Each dispatch is recorded with its outcome: verified pass, verifier failed, worker error, handshake missing, or no verifier. Outcomes are recorded but not yet used as evidence. Environment failures cannot yet be separated from work failures, so outcomes cannot safely move a pick.
+`npm test` makes no model calls. Tests write router state to a temp
+directory, never to `~/.pi/agent/jev-router`.
 
 ## Files
 
-- `src/classifier.ts` — Jev call. One request, five questions.
+- `src/classifier.ts` — the Jev call. One request, five questions.
+- `src/context.ts` — the bounded context block for the classifier.
+- `src/continuity.ts` — continuations, inherited work kinds, tokenizer margins.
 - `src/catalog.ts` — fetch, cache and normalise the OpenRouter catalog.
-- `src/evidence.ts` — per-model, per-work-kind statistics from `eval/results`.
+- `src/evidence.ts` — per-model, per-work-kind statistics from `eval/results`, with a hard-suite cell.
+- `src/writing-prior.ts` — EQ-Bench Creative Writing Elo per model.
 - `src/frontier.ts` — Pareto dominance, the weighted value function that picks the model, and the knee point, which is reported for diagnostics.
-- `src/selector.ts` — scores models and selects one. Pure functions. No model calls.
+- `src/selector.ts` — gates, role policy, calibrated priors and the pick. Pure functions. No model calls.
+- `src/ledger.ts` — the decision ledger.
+- `src/version.ts` — the loaded package version.
+- `src/session-state.ts` — session spend and reload checks.
+- `src/subscription.ts` — plan routes and cooldowns.
 - `src/board.ts` — SQLite task state.
-- `src/dispatch.ts` — worker spawn and handshake.
-- `extensions/router.ts` — pi hooks and commands.
-- `eval/` — benchmark tasks, verifiers, runner.
+- `src/dispatch.ts` — worker spawn, handshake and outcome.
+- `src/worktree.ts` — worker worktrees.
+- `extensions/router.ts` — pi hooks and `/router`.
+- `extensions/chief.ts` — `/chief`.
+- `eval/` — benchmark tasks, verifiers, runner, replay and classifier eval.
