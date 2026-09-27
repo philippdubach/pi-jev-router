@@ -75,6 +75,16 @@ export type WorkKind = "planning" | "code" | "writing" | "other";
  * (49.6). claude-sonnet-5 (38.2) is far below.
  */
 export const PLANNING_MIN_INTELLIGENCE = 48.5;
+/**
+ * A second, lower planning line for models with PROVEN_RUNS or more measured
+ * planning runs. The user approved it on 27 September 2026, so that a model
+ * measured at 4 of 4 does not stay out on one index point. Placed in the gap
+ * among measured planners from 47.5 (gpt-6-sol, 4 of 4) to 41.8
+ * (glm-5.3-flash). Below it, claude-sonnet-5 (38.2), deepseek-v4-flash-0731
+ * (34.3) and ling-3.0-flash (no index) stay out, whatever they score on the
+ * benchmark: the planning tasks are too few to outrank the policy.
+ */
+export const PLANNING_MEASURED_MIN_INTELLIGENCE = 44.5;
 export const WRITING_VENDORS = ["openai/"];
 /**
  * Minimum EQ-Bench writing Elo for a writing model from WRITING_VENDORS. An
@@ -89,7 +99,11 @@ export const WRITING_MIN_ELO = 1760;
 
 /** True when the role policy lets this model take work of this kind. */
 export function roleEligible(m: CatalogModel, kind: WorkKind, evidence: EvidenceIndex): boolean {
-  if (kind === "planning") return (m.aa?.intelligence ?? 0) >= PLANNING_MIN_INTELLIGENCE;
+  if (kind === "planning") {
+    const intelligence = m.aa?.intelligence ?? 0;
+    if (intelligence >= PLANNING_MIN_INTELLIGENCE) return true;
+    return intelligence >= PLANNING_MEASURED_MIN_INTELLIGENCE && (statsFor(evidence, m.id, "planning")?.runs ?? 0) >= PROVEN_RUNS;
+  }
   if (kind === "writing") {
     if (!WRITING_VENDORS.some((v) => m.id.startsWith(v))) return false;
     return (WRITING_ELO[m.id] ?? 0) >= WRITING_MIN_ELO || (statsFor(evidence, m.id, "writing")?.runs ?? 0) >= PROVEN_RUNS;
@@ -105,6 +119,20 @@ export const PROFILE_WEIGHTS: Record<WorkKind, Weights> = {
   writing: { lambda: 0.80, mu: 0.50 },
   other: { lambda: 0.50, mu: 0.25 },
 };
+
+/**
+ * Weights for a code task the classifier rates hard (HARD_COMPLEXITY or
+ * more). The user approved on 27 September 2026 that hard code weighs cost
+ * like planning. With the code weights, calibrated code quality spans about
+ * 0.87 to 1.0 and no complexity let a 100x price step buy that difference,
+ * so the cheapest capable model took every code task.
+ */
+export const HARD_CODE_WEIGHTS: Weights = PROFILE_WEIGHTS.planning;
+
+/** The weights for one task: its kind, and for code, its difficulty. */
+export function weightsFor(kind: WorkKind, hard: boolean): Weights {
+  return kind === "code" && hard ? HARD_CODE_WEIGHTS : PROFILE_WEIGHTS[kind];
+}
 
 /**
  * Used only when the catalog is unavailable, so no frontier can be computed.
@@ -473,7 +501,7 @@ export function selectModel(
     if (candidates.length === 0) continue;
     const scored = candidates.map((m) => score(m, env, kind, evidence, priors, latPrior, hard));
     const front = nondominated(scored);
-    const w = PROFILE_WEIGHTS[kind];
+    const w = weightsFor(kind, hard);
     // Complexity scales cost aversion. A hard task tolerates more spend; a
     // trivial one should not pay for capability it will not use. Complexity
     // also picks the evidence cell: `hard` reads the hard-suite runs above.

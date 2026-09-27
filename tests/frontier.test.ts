@@ -1,5 +1,5 @@
 // Pareto frontier — run: node --experimental-strip-types tests/frontier.test.ts
-import { dominates, nondominated, knee, tangency, type Scored } from "../src/frontier.ts";
+import { dominates, nondominated, knee, tangency, budgetPick, type Scored } from "../src/frontier.ts";
 
 let failed = 0;
 const check = (name: string, ok: boolean) => {
@@ -99,4 +99,8 @@ check("one measured point falls back to full chord", knee(withExtremes, new Set(
 // with a cheaper unmeasured point on the frontier.
 const dominant = [s("cheap-unmeasured", 0.76, 0.0009, 1), s("best-measured", 0.97, 0.0017, 1), s("weak-measured", 0.68, 0.0034, 1), s("dear", 1.0, 0.66, 1)];
 check("dominant measured model is the knee", knee(dominant, new Set(["best-measured", "weak-measured"]))?.id === "best-measured");
+// Over budget the router drops to the cheapest capable model (26 Sep decision).
+check("budget pick is the cheapest frontier member", budgetPick([s("a", 0.9, 0.5, 1), s("b", 0.7, 0.01, 1), s("c", 0.8, 0.02, 1)])?.id === "b");
+check("budget pick breaks a price tie by quality", budgetPick([s("a", 0.7, 0.01, 1), s("b", 0.8, 0.01, 1)])?.id === "b");
+check("budget pick of an empty frontier is undefined", budgetPick([]) === undefined);
 process.exit(failed ? 1 : 0);

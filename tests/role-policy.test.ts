@@ -1,5 +1,5 @@
 // Role policy — run: node --experimental-strip-types tests/role-policy.test.ts
-import { selectModel, PLANNING_MIN_INTELLIGENCE, WRITING_MIN_ELO } from "../src/selector.ts";
+import { selectModel, roleEligible, complexityScale, PROFILE_WEIGHTS, PLANNING_MIN_INTELLIGENCE, PLANNING_MEASURED_MIN_INTELLIGENCE, WRITING_MIN_ELO } from "../src/selector.ts";
 import { WRITING_ELO } from "../src/writing-prior.ts";
 import type { CatalogModel } from "../src/catalog.ts";
 import type { EvidenceIndex } from "../src/evidence.ts";
@@ -70,4 +70,26 @@ check("no OpenAI model: writing still routes", w2.modelId !== "" && w2.reason ==
 const easy = selectModel(env, cls(0), catalog, {}, "code");
 const hard = selectModel(env, cls(3), catalog, {}, "code");
 check("hard code costs at least as much as easy code", (hard.cEst ?? 0) >= (easy.cEst ?? 0), `${easy.modelId} ${hard.modelId}`);
+// --- planning: a second, lower line for measured planners (26 Sep decision) ---
+check("fixture: sol sits between the two planning lines",
+  47.5 >= PLANNING_MEASURED_MIN_INTELLIGENCE && 47.5 < PLANNING_MIN_INTELLIGENCE && 41.8 < PLANNING_MEASURED_MIN_INTELLIGENCE);
+const sol = model("openai/sol", 2e-6, 47.5);
+const flash = model("z-ai/flash", 1e-7, 41.8);
+const runs = (n: number, p: number) => ({ runs: n, passes: p, meanCostUsd: 0.05, meanLatencyMs: 30000 });
+const measuredPlanners: EvidenceIndex = { "openai/sol": { planning: runs(4, 4) }, "z-ai/flash": { planning: runs(5, 5) } };
+check("a measured planner above the second line is eligible", roleEligible(sol, "planning", measuredPlanners));
+check("a measured planner below the second line stays out", !roleEligible(flash, "planning", measuredPlanners));
+check("an unmeasured model between the lines stays out", !roleEligible(sol, "planning", {}));
+check("two planning runs are not enough", !roleEligible(sol, "planning", { "openai/sol": { planning: runs(2, 2) } }));
+
+// --- hard code weighs cost like planning (26 Sep decision) ---
+const codeCat = [model("c/weak", 5e-8, 10), model("c/cheap", 1e-7, 50), model("c/strong", 3e-5, 58)];
+const codeEasy = selectModel(env, cls(1), codeCat, {}, "code");
+const codeHard = selectModel(env, cls(2.5), codeCat, {}, "code");
+check("hard code uses the planning cost weight",
+  codeHard.lambda === PROFILE_WEIGHTS.planning.lambda * complexityScale(2.5), String(codeHard.lambda));
+check("easy code keeps the code cost weight",
+  codeEasy.lambda === PROFILE_WEIGHTS.code.lambda * complexityScale(1), String(codeEasy.lambda));
+check("hard code buys the strong model where easy code takes the cheap one",
+  codeEasy.modelId === "c/cheap" && codeHard.modelId === "c/strong", `${codeEasy.modelId} ${codeHard.modelId}`);
 process.exit(failed ? 1 : 0);

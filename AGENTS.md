@@ -31,7 +31,7 @@ features outside this scope. Do not add a server, a dashboard, or an MCP layer.
 6. Budget gates apply to automatic routing. A pin cannot bypass a budget or a security check.
 7. Workers get `--no-extensions` and `--no-context-files`. A worker must not spawn workers.
 8. Do not commit, push, or deploy from a worker.
-9. The role policy is the user's decision. Do not change `PLANNING_MIN_INTELLIGENCE`, `WRITING_VENDORS`, `WRITING_MIN_ELO` or `PROFILE_WEIGHTS` without the user's approval.
+9. The role policy is the user's decision. Do not change `PLANNING_MIN_INTELLIGENCE`, `PLANNING_MEASURED_MIN_INTELLIGENCE`, `WRITING_VENDORS`, `WRITING_MIN_ELO`, `PROFILE_WEIGHTS`, `HARD_CODE_WEIGHTS` or the over-budget fallback without the user's approval.
 10. A ledger write must never break a task. Keep `record()` free of throws.
 
 ## Selection changes

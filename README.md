@@ -31,7 +31,8 @@ not switch. Use `/router auto` or `/router auto --dry-run N` to let it switch.
 6. **Frontier and pick.** The router builds the Pareto frontier over
    quality, cost and latency. A weighted value function picks from it:
    quality minus cost and latency, weighted by work kind and by complexity
-   (a hard task weighs cost less). The knee of the frontier is computed and
+   (a hard task weighs cost less; a hard code task, complexity 2 or more,
+   uses the planning weights). The knee of the frontier is computed and
    recorded as `kneeId` for diagnostics only.
 
 **Quality** is the measured pass rate from `eval/results`, smoothed toward
@@ -49,7 +50,7 @@ exist.
 
 | Work kind | Eligible models | Thinking |
 |---|---|---|
-| Planning | Artificial Analysis intelligence index of 48.5 or more | high |
+| Planning | Artificial Analysis intelligence index of 48.5 or more, or 44.5 or more with 3 or more measured planning runs | high |
 | Code | every feasible model | medium |
 | Writing | OpenAI models with a writing Elo of 1760 or more, or 3 or more measured writing runs | low |
 | Other | every feasible model | medium |
@@ -59,8 +60,10 @@ directive. The thresholds sit in measured gaps; `src/selector.ts` records
 each gap next to its constant.
 
 On the current catalog and evidence, planning routes to
-`anthropic/claude-opus-5.5`, code to `inclusionai/ling-3.0-flash` and
-writing to `openai/gpt-5.6-luna`.
+`anthropic/claude-opus-5.5`, easy code to `inclusionai/ling-3.0-flash`,
+hard code to `anthropic/claude-opus-5.5` and writing to
+`openai/gpt-5.6-luna`. `openai/gpt-6-sol` is eligible for planning on its
+measured runs.
 
 ## Commands
 
@@ -83,8 +86,9 @@ worker. The worker gets the same frontier pick for its role, runs in its own
 Git worktree, and its changes merge only when `verifierCommand` exits 0.
 
 The budget counts the main session's model spend, classifier calls and
-dispatched workers. When the budget is reached, the router stops switching
-and warns.
+dispatched workers. When the budget is reached, the router switches to the
+cheapest model on the task's frontier and warns. A pin does not override
+the budget.
 
 ## Setup
 
@@ -179,20 +183,18 @@ Seven of these rows are adjudicated. Runner pass counts differ where a run
 went over the turn budget or timed out, mostly for `google/gemini-3.8-flash`.
 Earlier runs, from 20 to 25 September, are in `eval/results/`.
 
-## Open decisions
+## Policy decisions, 27 September 2026
 
-These follow from the current policy and weights. They are not defects.
-
-- **Planning has one candidate.** Only `anthropic/claude-opus-5.5` is
-  eligible and measured. `openai/gpt-6-sol` passed 4 of 4 planning tasks at
-  about a quarter of the cost, but its intelligence index (47.5) is under
-  the 48.5 line.
-- **Code does not change pick with complexity.** Calibrated code quality
-  spans about 0.87 to 1.0, and the code cost weight does not let a 100x
-  price step buy that difference. `inclusionai/ling-3.0-flash` wins at
-  every complexity.
-- **Over budget, the router stays on the current model**, whatever that
-  model costs.
+- **Planning** also admits a model with an intelligence index of 44.5 or
+  more and 3 or more measured planning runs. The line sits in the gap among
+  measured planners from `openai/gpt-6-sol` (47.5, 4 of 4) to
+  `z-ai/glm-5.3-flash` (41.8). Without the second line, planning had one
+  candidate.
+- **Hard code** (complexity 2 or more) weighs cost like planning. With the
+  code weights, `inclusionai/ling-3.0-flash` won at every complexity. The
+  replay now sends 3 of 24 code tasks to `anthropic/claude-opus-5.5`.
+- **Over budget**, the router drops to the cheapest capable model instead of
+  staying on the model that ran last.
 
 ## Subscription routing
 

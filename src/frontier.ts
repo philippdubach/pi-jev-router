@@ -174,3 +174,18 @@ export function tangency(
   }
   return { pick: best, utility: bestU };
 }
+
+/**
+ * The cheapest frontier member, for a session over its budget. The user
+ * approved on 27 September 2026 that spend should slow at the budget, not
+ * freeze on whatever model ran last. The frontier already holds only
+ * feasible, role-eligible models, so the cheapest member can still do the
+ * work. A price tie goes to the higher quality.
+ */
+export function budgetPick(frontier: Scored[]): Scored | undefined {
+  let best: Scored | undefined;
+  for (const m of frontier) {
+    if (!best || m.c < best.c || (m.c === best.c && m.q > best.q)) best = m;
+  }
+  return best;
+}

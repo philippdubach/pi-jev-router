@@ -25,6 +25,7 @@ import { join } from "node:path";
 import { classify, WRITING_STYLE_DIRECTIVE } from "../src/classifier.ts";
 import { selectModel, resolveWorkKind, PROFILE_WEIGHTS, ROLE_THINKING, DECOMPOSE_HINT_THRESHOLD, type Recommendation, type WorkKind } from "../src/selector.ts";
 import { loadCatalog, CATALOG_TTL_MS, type CatalogModel } from "../src/catalog.ts";
+import { budgetPick } from "../src/frontier.ts";
 import { loadEvidence, type EvidenceIndex } from "../src/evidence.ts";
 import { collectContext } from "../src/context.ts";
 import { estimateTargetTokens, inheritWorkKind, isSameModel, continuationDecision, nextLastRouted, type RoutedTask } from "../src/continuity.ts";
@@ -241,15 +242,27 @@ export default function (pi: ExtensionAPI) {
     const decomposeP = Number((classification.answers as any)?.decompose?.value ?? 0);
     const suggestDispatch = !abstain && workKind === "code" && decomposeP >= DECOMPOSE_HINT_THRESHOLD;
 
+    // The switch target when the router switches: the budget fallback, else
+    // the pin, else the pick.
+    let switchTarget: string | undefined;
     if (mode === "auto" && available && !abstain) {
       // Budget gate.
       const overBudget = sessionBudgetUsd !== undefined && sessionSpendUsd >= sessionBudgetUsd;
-      if (overBudget) {
-        ctx.ui.notify(`jev-router: session budget $${sessionBudgetUsd} reached — not switching`, "warning");
+      // Over budget, drop to the cheapest capable model on this task's
+      // frontier instead of staying on whatever ran last. A pin cannot bypass
+      // the budget (AGENTS.md rule 6).
+      const budgetTarget = overBudget ? budgetPick(recommendation.frontier ?? [])?.id : undefined;
+      if (overBudget && !budgetTarget) {
+        ctx.ui.notify(`jev-router: session budget $${sessionBudgetUsd} reached — no frontier to fall back to, not switching`, "warning");
       } else {
         // A pin overrides the frontier's pick as the switch target, without
         // touching recommendation.modelId (the pick stays what it was).
-        const target = pinnedModelId ?? recommendation.modelId;
+        const target = budgetTarget ?? pinnedModelId ?? recommendation.modelId;
+        switchTarget = target;
+        if (budgetTarget) {
+          note = `session budget $${sessionBudgetUsd} reached — cheapest capable model ${budgetTarget}`;
+          ctx.ui.notify(`jev-router: ${note}`, "warning");
+        }
         const switchedOk = await switchModel(ctx, target, ROLE_THINKING[workKind]);
         if (switchedOk === true) switched = true;
         if (switchedOk === undefined) note = `target model unavailable in Pi catalog; restart Pi after configuring ${target}`;
@@ -271,20 +284,20 @@ export default function (pi: ExtensionAPI) {
     // Classifier spend is ours; approximate from its usage.
     if (classification.usage?.cost) sessionSpendUsd += classification.usage.cost;
 
-    // The model that actually ran the turn. It is the switch target (the pin,
-    // when one is active) when we switched, else whatever the session was
-    // already on (pin held but switch failed, budget gate, shadow mode, or
+    // The model that actually ran the turn. It is the switch target (the
+    // budget fallback or the pin, when one applies) when we switched, else
+    // whatever the session was already on (switch failed, shadow mode, or
     // the abstain branch above).
     const activeModel: string | undefined = switched
-      ? (pinnedModelId ?? recommendation.modelId)
+      ? switchTarget
       : (ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined);
 
     lastDecision = { ts: new Date().toISOString(), recommendation, classification, note, switched, activeModel };
 
     if (trial && mode === "auto" && switched) {
       // Log the model that actually ran (the switch target), not the raw
-      // frontier pick, which a pin can override.
-      trial.log.push({ objective: event.prompt.replace(/\s+/g, " ").slice(0, 60), model: pinnedModelId ?? recommendation.modelId, workKind, reason: recommendation.reason, costEst: recommendation.cEst });
+      // frontier pick, which a pin or the budget can override.
+      trial.log.push({ objective: event.prompt.replace(/\s+/g, " ").slice(0, 60), model: activeModel ?? recommendation.modelId, workKind, reason: recommendation.reason, costEst: recommendation.cEst });
       trial.remaining -= 1;
       if (trial.remaining <= 0) {
         const lines = trial.log.map((e, i) => `  ${i + 1}. [${e.workKind}] ${e.model} ($${(e.costEst ?? 0).toFixed(4)} est, ${e.reason}) — "${e.objective}"`);
