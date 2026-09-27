@@ -50,7 +50,7 @@ exist.
 
 | Work kind | Eligible models | Thinking |
 |---|---|---|
-| Planning | Artificial Analysis intelligence index of 48.5 or more, or 44.5 or more with 3 or more measured planning runs | high |
+| Planning | Artificial Analysis intelligence index of 48.5 or more; or 44.5 or more with 3 or more measured planning runs; or, for a model with no index, 4 or more measured planning runs, all passed | high |
 | Code | every feasible model | medium |
 | Writing | OpenAI models with a writing Elo of 1760 or more, or 3 or more measured writing runs | low |
 | Other | every feasible model | medium |
@@ -195,6 +195,9 @@ Earlier runs, from 20 to 25 September, are in `eval/results/`.
   replay now sends 3 of 24 code tasks to `anthropic/claude-opus-5.5`.
 - **Over budget**, the router drops to the cheapest capable model instead of
   staying on the model that ran last.
+- **A model with no intelligence index** (for example `fireworks/ember-1`)
+  can take planning on 4 or more measured planning runs, all passed. No
+  index line can apply to it otherwise.
 
 ## Subscription routing
 

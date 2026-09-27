@@ -85,6 +85,15 @@ export const PLANNING_MIN_INTELLIGENCE = 48.5;
  * benchmark: the planning tasks are too few to outrank the policy.
  */
 export const PLANNING_MEASURED_MIN_INTELLIGENCE = 44.5;
+/**
+ * Measured planning runs a model with no intelligence index needs, all of
+ * them passed, to take planning work. Without an index neither line above
+ * can apply, so fireworks/ember-1 could never plan whatever it scored. Four
+ * is the record claude-opus-5.5 and gpt-6-sol each hold. An index of 0
+ * counts as no index. ling-3.0-flash, at 4 of 5, stays out. Approved by the
+ * user on 27 September 2026.
+ */
+export const PLANNING_UNINDEXED_MIN_RUNS = 4;
 export const WRITING_VENDORS = ["openai/"];
 /**
  * Minimum EQ-Bench writing Elo for a writing model from WRITING_VENDORS. An
@@ -101,8 +110,12 @@ export const WRITING_MIN_ELO = 1760;
 export function roleEligible(m: CatalogModel, kind: WorkKind, evidence: EvidenceIndex): boolean {
   if (kind === "planning") {
     const intelligence = m.aa?.intelligence ?? 0;
+    const st = statsFor(evidence, m.id, "planning");
+    if (intelligence <= 0) {
+      return !!st && st.runs >= PLANNING_UNINDEXED_MIN_RUNS && st.passes === st.runs;
+    }
     if (intelligence >= PLANNING_MIN_INTELLIGENCE) return true;
-    return intelligence >= PLANNING_MEASURED_MIN_INTELLIGENCE && (statsFor(evidence, m.id, "planning")?.runs ?? 0) >= PROVEN_RUNS;
+    return intelligence >= PLANNING_MEASURED_MIN_INTELLIGENCE && (st?.runs ?? 0) >= PROVEN_RUNS;
   }
   if (kind === "writing") {
     if (!WRITING_VENDORS.some((v) => m.id.startsWith(v))) return false;

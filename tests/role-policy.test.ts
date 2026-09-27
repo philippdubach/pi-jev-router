@@ -1,5 +1,5 @@
 // Role policy — run: node --experimental-strip-types tests/role-policy.test.ts
-import { selectModel, roleEligible, complexityScale, PROFILE_WEIGHTS, PLANNING_MIN_INTELLIGENCE, PLANNING_MEASURED_MIN_INTELLIGENCE, WRITING_MIN_ELO } from "../src/selector.ts";
+import { selectModel, roleEligible, complexityScale, PROFILE_WEIGHTS, PLANNING_MIN_INTELLIGENCE, PLANNING_MEASURED_MIN_INTELLIGENCE, PLANNING_UNINDEXED_MIN_RUNS, WRITING_MIN_ELO } from "../src/selector.ts";
 import { WRITING_ELO } from "../src/writing-prior.ts";
 import type { CatalogModel } from "../src/catalog.ts";
 import type { EvidenceIndex } from "../src/evidence.ts";
@@ -92,4 +92,19 @@ check("easy code keeps the code cost weight",
   codeEasy.lambda === PROFILE_WEIGHTS.code.lambda * complexityScale(1), String(codeEasy.lambda));
 check("hard code buys the strong model where easy code takes the cheap one",
   codeEasy.modelId === "c/cheap" && codeHard.modelId === "c/strong", `${codeEasy.modelId} ${codeHard.modelId}`);
+// --- planning: a model with no intelligence index (27 Sep decision) ---
+const unindexed: CatalogModel = { ...model("fireworks/unindexed", 3e-6, 0), aa: null };
+const zeroIndex = model("ling/zero-index", 1e-7, 0);
+const clean = runs(PLANNING_UNINDEXED_MIN_RUNS, PLANNING_UNINDEXED_MIN_RUNS);
+check("an index-less model with a clean planning record is eligible",
+  roleEligible(unindexed, "planning", { "fireworks/unindexed": { planning: clean } }));
+check("an index of 0 counts as no index",
+  roleEligible(zeroIndex, "planning", { "ling/zero-index": { planning: clean } }));
+check("one failed planning run keeps an index-less model out",
+  !roleEligible(unindexed, "planning", { "fireworks/unindexed": { planning: runs(5, 4) } }));
+check("too few runs keep an index-less model out",
+  !roleEligible(unindexed, "planning", { "fireworks/unindexed": { planning: runs(PLANNING_UNINDEXED_MIN_RUNS - 1, PLANNING_UNINDEXED_MIN_RUNS - 1) } }));
+check("an unmeasured index-less model stays out", !roleEligible(unindexed, "planning", {}));
+check("an indexed model below the measured line still stays out on a clean record",
+  !roleEligible(flash, "planning", { "z-ai/flash": { planning: runs(8, 8) } }));
 process.exit(failed ? 1 : 0);
