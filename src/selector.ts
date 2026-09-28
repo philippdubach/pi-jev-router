@@ -61,8 +61,9 @@ export type WorkKind = "planning" | "code" | "writing" | "other";
 
 /**
  * The role policy you set on 20 September 2026. Planning goes to frontier
- * intelligence. Writing goes to fast OpenAI models, and the STE directive is
- * applied. Code takes the Pareto pick. These are eligibility rules, not
+ * intelligence. Writing goes to models with a writing Elo, and the STE
+ * directive is applied; the OpenAI-only rule was dropped on 28 September
+ * 2026. Code takes the Pareto pick. These are eligibility rules, not
  * weights: inside the eligible set the frontier still decides.
  */
 
@@ -94,15 +95,14 @@ export const PLANNING_MEASURED_MIN_INTELLIGENCE = 44.5;
  * user on 27 September 2026.
  */
 export const PLANNING_UNINDEXED_MIN_RUNS = 4;
-export const WRITING_VENDORS = ["openai/"];
 /**
- * Minimum EQ-Bench writing Elo for a writing model from WRITING_VENDORS. An
- * unrated model gets the optimistic prior and then wins on price alone, so
- * gpt-5-nano took every writing task. Placed in the widest gap near the top
- * of the rated, tool-capable OpenAI models: from 1825.8 (gpt-5.6-luna) to
- * 1699.8 (gpt-5.2). Eligible on 26 September 2026: gpt-6-astra, gpt-5.6-sol,
- * gpt-5.6-terra, gpt-5.5, gpt-5.4 and gpt-5.6-luna. An unrated model with
- * PROVEN_RUNS or more measured writing runs is also eligible.
+ * Minimum EQ-Bench writing Elo for a writing model. An unrated model gets
+ * the optimistic prior and then wins on price alone, so gpt-5-nano took
+ * every writing task. Placed in the widest gap near the top of the rated,
+ * tool-capable OpenAI models when writing was OpenAI-only: from 1825.8
+ * (gpt-5.6-luna) to 1699.8 (gpt-5.2). The line was kept when the vendor
+ * rule was dropped on 28 September 2026. An unrated model with PROVEN_RUNS
+ * or more measured writing runs is also eligible.
  */
 export const WRITING_MIN_ELO = 1760;
 
@@ -118,7 +118,6 @@ export function roleEligible(m: CatalogModel, kind: WorkKind, evidence: Evidence
     return intelligence >= PLANNING_MEASURED_MIN_INTELLIGENCE && (st?.runs ?? 0) >= PROVEN_RUNS;
   }
   if (kind === "writing") {
-    if (!WRITING_VENDORS.some((v) => m.id.startsWith(v))) return false;
     return (WRITING_ELO[m.id] ?? 0) >= WRITING_MIN_ELO || (statsFor(evidence, m.id, "writing")?.runs ?? 0) >= PROVEN_RUNS;
   }
   return true;

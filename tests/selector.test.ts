@@ -72,7 +72,7 @@ const catalog = [
 
 const writing = selectModel(env(), answers(1, 0) as any, catalog, {}, "writing");
 check("writing route is cheap", writing.modelId === "cheap/flash");
-// No openai/ model is in this catalog, so the writing role policy is relaxed.
+// No model in this catalog has a writing Elo, so the writing role policy is relaxed.
 check("writing reason", writing.reason === "relaxed_role_policy");
 check("reports candidate count", writing.candidateCount === 3);
 check("reports frontier", Array.isArray(writing.frontier) && writing.frontier.length >= 1);

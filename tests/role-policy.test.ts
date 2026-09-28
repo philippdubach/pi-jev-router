@@ -50,21 +50,27 @@ check("complexity changes the planning pick", picks.size > 1, [...picks].join(",
 
 // --- writing ---
 const w = selectModel(env, cls(1), catalog, {}, "writing");
-check("writing goes to a rated OpenAI model, not gpt-5-nano",
+check("writing goes to a rated model, not gpt-5-nano",
   w.modelId.startsWith("openai/") && w.modelId !== "openai/gpt-5-nano" && w.reason === "frontier_tangency", `${w.modelId} ${w.reason}`);
 
-// An unrated OpenAI model becomes eligible once it has measured writing runs.
+// An unrated model becomes eligible once it has measured writing runs.
 const solOnly = [...catalog.filter((m) => !m.id.startsWith("openai/")), model("openai/gpt-6-sol", 2e-6, 47.5)];
 const solEvidence: EvidenceIndex = { "openai/gpt-6-sol": { writing: { runs: 4, passes: 4, meanCostUsd: 0.01, meanLatencyMs: 5000 } } };
 const ws = selectModel(env, cls(1), solOnly, solEvidence, "writing");
-check("unrated OpenAI model with measured runs is eligible", ws.modelId === "openai/gpt-6-sol" && ws.reason === "frontier_tangency", `${ws.modelId} ${ws.reason}`);
+check("unrated model with measured runs is eligible", ws.modelId === "openai/gpt-6-sol" && ws.reason === "frontier_tangency", `${ws.modelId} ${ws.reason}`);
 const solThin: EvidenceIndex = { "openai/gpt-6-sol": { writing: { runs: 2, passes: 2, meanCostUsd: 0.01, meanLatencyMs: 5000 } } };
 const wt = selectModel(env, cls(1), solOnly, solThin, "writing");
-check("unrated OpenAI model with too few runs is not eligible", wt.reason === "relaxed_role_policy", `${wt.modelId} ${wt.reason}`);
+check("unrated model with too few runs is not eligible", wt.reason === "relaxed_role_policy", `${wt.modelId} ${wt.reason}`);
 
-const noOpenAI = catalog.filter((m) => !m.id.startsWith("openai/"));
-const w2 = selectModel(env, cls(1), noOpenAI, {}, "writing");
-check("no OpenAI model: writing still routes", w2.modelId !== "" && w2.reason === "relaxed_role_policy", `${w2.modelId} ${w2.reason}`);
+const noRated = catalog.filter((m) => !m.id.startsWith("openai/"));
+const w2 = selectModel(env, cls(1), noRated, {}, "writing");
+check("no rated model: writing still routes", w2.modelId !== "" && w2.reason === "relaxed_role_policy", `${w2.modelId} ${w2.reason}`);
+
+// The vendor is not a rule (28 September 2026). Any model with a writing
+// Elo at or above the line is eligible.
+const fable = [...noRated, model("anthropic/claude-fable-5.1", 2e-6, 53.4)];
+const wf = selectModel(env, cls(1), fable, {}, "writing");
+check("a rated non-OpenAI model is eligible for writing", wf.modelId === "anthropic/claude-fable-5.1" && wf.reason === "frontier_tangency", `${wf.modelId} ${wf.reason}`);
 
 // --- code ---
 const easy = selectModel(env, cls(0), catalog, {}, "code");

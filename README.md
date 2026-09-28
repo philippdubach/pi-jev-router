@@ -52,7 +52,7 @@ exist.
 |---|---|---|
 | Planning | Artificial Analysis intelligence index of 48.5 or more; or 44.5 or more with 3 or more measured planning runs; or, for a model with no index, 4 or more measured planning runs, all passed | high |
 | Code | every feasible model | medium |
-| Writing | OpenAI models with a writing Elo of 1760 or more, or 3 or more measured writing runs | low |
+| Writing | any model with a writing Elo of 1760 or more, or 3 or more measured writing runs | low |
 | Other | every feasible model | medium |
 
 Writing turns also get the Humanizer and Simplified Technical English (STE)
@@ -62,8 +62,8 @@ each gap next to its constant.
 On the current catalog and evidence, planning routes to
 `anthropic/claude-opus-5.5`, easy code to `inclusionai/ling-3.0-flash`,
 hard code to `anthropic/claude-opus-5.5` and writing to
-`openai/gpt-5.6-luna`. `openai/gpt-6-sol` is eligible for planning on its
-measured runs.
+`deepseek/deepseek-v4-flash-0731`. `openai/gpt-6-sol` is eligible for
+planning on its measured runs.
 
 ## Commands
 
@@ -217,6 +217,11 @@ Earlier runs, from 20 to 25 September, are in `eval/results/`.
   `anthropic/claude-opus-5.5` under the planning weights. On code,
   `openai/gpt-6-sol` dominates it: the same 10 of 10 from a higher prior,
   at a lower estimated cost.
+- **Writing is no longer OpenAI-only** (28 September). The vendor rule from
+  20 September is dropped; the Elo line and the measured-runs door stay.
+  Eligible writing models go from 7 to 24. The replay moves all 10 writing
+  tasks from `openai/gpt-5.6-luna` to `deepseek/deepseek-v4-flash-0731`,
+  which has 12 of 12 measured writing runs at about a seventh of the cost.
 - **`anthropic/claude-sonnet-5.5`** (28 September) arrived on OpenRouter at
   $2/$10 per million tokens with no intelligence index yet. It qualifies for
   planning on its 4 of 4 and sits on the planning and code frontiers, at
