@@ -1,0 +1,138 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "totalTasks": 6,
+      "passedTasks": 6,
+      "passRate": 100,
+      "totalCostUsd": 0.04162692,
+      "costPerSuccessUsd": 0.00693782,
+      "avgLatencyMs": 129036.83333333333,
+      "totalTokens": 858848
+    }
+  ],
+  "results": [
+    {
+      "taskId": "code_cache_stampede",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": true,
+      "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+      "latencyMs": 180005,
+      "tokens": {
+        "input": 87636,
+        "output": 3390,
+        "cacheRead": 49920,
+        "cacheWrite": 0,
+        "total": 140946
+      },
+      "costUsd": 0.00698202,
+      "turns": 6,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "code_multifile_rename",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+      "latencyMs": 123404,
+      "tokens": {
+        "input": 111093,
+        "output": 3175,
+        "cacheRead": 76736,
+        "cacheWrite": 0,
+        "total": 191004
+      },
+      "costUsd": 0.00857026,
+      "turns": 7
+    },
+    {
+      "taskId": "write_strict_ste",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "low",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Strict STE passed: 63 sentences, all <= 20 words, 15 imperative steps.",
+      "latencyMs": 103256,
+      "tokens": {
+        "input": 42693,
+        "output": 2971,
+        "cacheRead": 26176,
+        "cacheWrite": 0,
+        "total": 71840
+      },
+      "costUsd": 0.00373126,
+      "turns": 3
+    },
+    {
+      "taskId": "code_distant_cause",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+      "latencyMs": 97428,
+      "tokens": {
+        "input": 70837,
+        "output": 2656,
+        "cacheRead": 52416,
+        "cacheWrite": 0,
+        "total": 125909
+      },
+      "costUsd": 0.00562259,
+      "turns": 5
+    },
+    {
+      "taskId": "code_interval_merge",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": true,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+      "latencyMs": 180006,
+      "tokens": {
+        "input": 115964,
+        "output": 3240,
+        "cacheRead": 67200,
+        "cacheWrite": 0,
+        "total": 186404
+      },
+      "costUsd": 0.00892748,
+      "turns": 8,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "code_thread_field",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "medium",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+      "latencyMs": 90122,
+      "tokens": {
+        "input": 100383,
+        "output": 3066,
+        "cacheRead": 39296,
+        "cacheWrite": 0,
+        "total": 142745
+      },
+      "costUsd": 0.00779331,
+      "turns": 7
+    }
+  ]
+}

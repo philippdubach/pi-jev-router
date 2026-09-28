@@ -1,0 +1,56 @@
+{
+ "summaries": [
+  {
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "totalTasks": 2,
+   "passedTasks": 2,
+   "passRate": 100,
+   "totalCostUsd": 0.056149279999999996,
+   "costPerSuccessUsd": 0.028074639999999998,
+   "avgLatencyMs": 46351,
+   "totalTokens": 139302
+  }
+ ],
+ "results": [
+  {
+   "taskId": "plan_expand_contract",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "high",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Migration plan passed: 18 steps, expand, dual-write, backfill, switch reads, stop writes, drop in a later release.",
+   "latencyMs": 77446,
+   "tokens": {
+    "input": 10,
+    "output": 8981,
+    "cacheRead": 64626,
+    "cacheWrite": 24663,
+    "total": 98280
+   },
+   "costUsd": 0.046273659999999994,
+   "turns": 4
+  },
+  {
+   "taskId": "plan_incident_decomposition",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "high",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Incident runbook passed: 9 owned, ordered steps covering all four systems.",
+   "latencyMs": 15256,
+   "tokens": {
+    "input": 6,
+    "output": 1654,
+    "cacheRead": 20337,
+    "cacheWrite": 19025,
+    "total": 41022
+   },
+   "costUsd": 0.00987562,
+   "turns": 2
+  }
+ ]
+}

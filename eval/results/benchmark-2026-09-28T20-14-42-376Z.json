@@ -1,0 +1,57 @@
+{
+ "summaries": [
+  {
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "totalTasks": 2,
+   "passedTasks": 2,
+   "passRate": 100.0,
+   "totalCostUsd": 0.05599166,
+   "costPerSuccessUsd": 0.02799583,
+   "avgLatencyMs": 41558.5,
+   "totalTokens": 160273
+  }
+ ],
+ "results": [
+  {
+   "taskId": "plan_expand_contract",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "high",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Migration plan failed:\n- Writes to the old column stop while reads still come from it.",
+   "latencyMs": 69801,
+   "tokens": {
+    "input": 12,
+    "output": 8017,
+    "cacheRead": 88153,
+    "cacheWrite": 23199,
+    "total": 119381
+   },
+   "costUsd": 0.046183880000000004,
+   "turns": 5,
+   "adjudicated": "correct expand-contract plan: add nullable first_name and last_name (R1), dual-write (R1), backfill (between R1 and R2), switch reads (R2, step 9), stop writing full_name (R3, step 12), DROP COLUMN (R4, step 18); verifier rejects it because the stop-write rule matches step 8's forward reference \"make full_name nullable ... so that R3 can stop writing the column\", which comes before the read switch; see eval/results/ADJUDICATIONS.md"
+  },
+  {
+   "taskId": "plan_incident_decomposition",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "high",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Incident runbook passed: 8 owned, ordered steps covering all four systems.",
+   "latencyMs": 13316,
+   "tokens": {
+    "input": 6,
+    "output": 1637,
+    "cacheRead": 20338,
+    "cacheWrite": 18911,
+    "total": 40892
+   },
+   "costUsd": 0.009807779999999999,
+   "turns": 2
+  }
+ ]
+}

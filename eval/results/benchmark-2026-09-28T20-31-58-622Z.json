@@ -1,0 +1,57 @@
+{
+  "summaries": [
+    {
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "totalTasks": 2,
+      "passedTasks": 1,
+      "passRate": 50,
+      "totalCostUsd": 0.00604094,
+      "costPerSuccessUsd": 0.00604094,
+      "avgLatencyMs": 119245,
+      "totalTokens": 106170
+    }
+  ],
+  "results": [
+    {
+      "taskId": "plan_expand_contract",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "high",
+      "correct": false,
+      "passed": false,
+      "timedOut": true,
+      "verifierOutput": "No output file. Checked: migration-plan.md, plan.md, output.md",
+      "latencyMs": 180096,
+      "tokens": {
+        "input": 25021,
+        "output": 554,
+        "cacheRead": 12224,
+        "cacheWrite": 0,
+        "total": 37799
+      },
+      "costUsd": 0.00188997,
+      "turns": 2,
+      "error": "Execution timed out"
+    },
+    {
+      "taskId": "plan_incident_decomposition",
+      "strategy": "model:nex-agi/nex-n2.5-pro",
+      "modelUsed": "nex-agi/nex-n2.5-pro",
+      "thinkingUsed": "high",
+      "correct": true,
+      "passed": true,
+      "timedOut": false,
+      "verifierOutput": "Incident runbook passed: 7 owned, ordered steps covering all four systems.",
+      "latencyMs": 58394,
+      "tokens": {
+        "input": 53321,
+        "output": 1674,
+        "cacheRead": 13376,
+        "cacheWrite": 0,
+        "total": 68371
+      },
+      "costUsd": 0.00415097,
+      "turns": 4
+    }
+  ]
+}

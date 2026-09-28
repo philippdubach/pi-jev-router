@@ -153,6 +153,14 @@ npm run bench -- --task=<id>     # one task
 The benchmark calls real models and costs money. Run it on purpose, not per
 commit.
 
+pi resolves a model slug through its own model store, not through the
+catalog. A slug the store does not know is used as given, but a slug it
+knows only as a variant is resolved to that variant: on 28 September
+`nex-agi/nex-n2.5-pro` became the retired `:free` slug and every run got a
+404 with zero tokens. `config/models.openrouter.json` lists such models
+explicitly under `models`, which pins the slug. Zero-token runs are not
+evidence; they are removed from the result file, not scored.
+
 Each task runs in an isolated workspace with an independent verifier.
 Every verifier is checked both ways: it fails the starting state and a
 plausible wrong answer, and it passes a correct answer. Ceiling tasks score
@@ -168,7 +176,7 @@ fails on phrasing, a human reads it and records an adjudication in
 `eval/results/ADJUDICATIONS.md`. That file also lists the known holes that
 the strict verifiers share with earlier versions.
 
-### Results, 26 and 27 September 2026
+### Results, 26 to 28 September 2026
 
 Scored the way the router reads them. Total spend $5.52 on 26 September.
 
@@ -179,8 +187,14 @@ Scored the way the router reads them. Total spend $5.52 on 26 September.
 | `google/gemini-3.8-flash` | 2/4 | 2/10 | 2/2 |
 | `openai/gpt-5.6-luna` | — | — | 4/4 |
 | `fireworks/ember-1` (27 Sep) | 4/4 | 10/10 | 2/2 |
+| `anthropic/claude-sonnet-5.5` (28 Sep) | 4/4 | 10/10 | 2/2 |
+| `nex-agi/nex-n2.5-pro` (28 Sep) | 1/4 | 8/10 | 1/2 |
 
-Eight rows are adjudicated (one of them Ember-1's). Ember-1 cost $1.08 for 16 runs. Runner pass counts differ where a run
+Nine rows are adjudicated (one each for Ember-1 and Sonnet 5.5). Ember-1 cost
+$1.08 for 16 runs, Sonnet 5.5 $0.23 for 16 runs and nex-n2.5-pro $0.10 for 16
+runs. nex-n2.5-pro passed 10 of 10 hard code tasks by the verifier, but two
+of them and one planning run hit the 180 s timeout, which is scored as a
+failure; both migration-plan runs timed out with no file. Runner pass counts differ where a run
 went over the turn budget or timed out, mostly for `google/gemini-3.8-flash`.
 Earlier runs, from 20 to 25 September, are in `eval/results/`.
 
@@ -203,6 +217,15 @@ Earlier runs, from 20 to 25 September, are in `eval/results/`.
   `anthropic/claude-opus-5.5` under the planning weights. On code,
   `openai/gpt-6-sol` dominates it: the same 10 of 10 from a higher prior,
   at a lower estimated cost.
+- **`anthropic/claude-sonnet-5.5`** (28 September) arrived on OpenRouter at
+  $2/$10 per million tokens with no intelligence index yet. It qualifies for
+  planning on its 4 of 4 and sits on the planning and code frontiers, at
+  about $0.08 per code task. It is never picked. Planning goes to Opus 5.5
+  under the planning weights. Code goes to `inclusionai/ling-3.0-flash` up to
+  complexity 2 and to Opus 5.5 from there, so the mid-priced frontier
+  members (Sonnet 5.5, `openai/gpt-6-sol`) are skipped at every complexity.
+  Whether the hard-code weights should stop at a mid-priced model is an
+  open decision.
 
 ## Subscription routing
 

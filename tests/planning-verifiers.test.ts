@@ -410,7 +410,7 @@ const gpt6solReal2 = await verifyMigrationPlan(dir2);
 check("real gpt-6-sol plan 2 (users.full_name qualified names) passes", gpt6solReal2.ok, gpt6solReal2.message);
 rmSync(join(dir2, "migration-plan.md"));
 
-// The verifier rejects the five plans below. The verifier is not made
+// The verifier rejects the six plans below. The verifier is not made
 // looser to accept them: a false FAIL is better than a false PASS (ruling
 // R14). Each test records the verdict that the verifier gives now.
 const adjudicatedPlans: Array<[string, string]> = [
@@ -438,6 +438,11 @@ const adjudicatedPlans: Array<[string, string]> = [
   // stop says "writes only first_name/last_name and no longer sets
   // full_name". The verifier knows neither form.
   ["ember-migration-plan-add-without-column-word.md", "real Ember-1 plan (add without the word column)"],
+  // Sonnet 5.5 pass 2 (28 September). Step 8 makes full_name nullable "so
+  // that R3 can stop writing the column". The stop-write rule takes that
+  // forward reference as the write stop, before reads switch in step 9. The
+  // real write stop is step 12.
+  ["sonnet55-migration-plan-forward-stop-write.md", "real Sonnet 5.5 plan (forward reference to the write stop)"],
 ];
 for (const [file, name] of adjudicatedPlans) {
   // correct plan; verifier too strict; adjudicated PASS in results — see ADJUDICATIONS.md

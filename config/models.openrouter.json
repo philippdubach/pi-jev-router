@@ -13,6 +13,12 @@
         },
         "fireworks/ember-1": {
           "maxTokens": 16384
+        },
+        "anthropic/claude-sonnet-5.5": {
+          "maxTokens": 16384
+        },
+        "nex-agi/nex-n2.5-pro": {
+          "maxTokens": 16384
         }
       },
       "models": [
@@ -28,6 +34,22 @@
           "cost": {
             "input": 0,
             "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "nex-agi/nex-n2.5-pro",
+          "name": "Nex N2.5 Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144,
+          "maxTokens": 16384,
+          "cost": {
+            "input": 0.07,
+            "output": 0.25,
             "cacheRead": 0,
             "cacheWrite": 0
           }

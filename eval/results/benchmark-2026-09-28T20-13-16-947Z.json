@@ -1,0 +1,136 @@
+{
+ "summaries": [
+  {
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "totalTasks": 6,
+   "passedTasks": 6,
+   "passRate": 100,
+   "totalCostUsd": 0.05682944000000001,
+   "costPerSuccessUsd": 0.009471573333333335,
+   "avgLatencyMs": 8817.833333333334,
+   "totalTokens": 361274
+  }
+ ],
+ "results": [
+  {
+   "taskId": "code_cache_stampede",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "medium",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Command passed: ALL CACHE TESTS PASSED\n",
+   "latencyMs": 9386,
+   "tokens": {
+    "input": 8,
+    "output": 616,
+    "cacheRead": 40484,
+    "cacheWrite": 19361,
+    "total": 60469
+   },
+   "costUsd": 0.00894904,
+   "turns": 3
+  },
+  {
+   "taskId": "code_multifile_rename",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "medium",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Command passed: ALL RENAME TESTS PASSED\n",
+   "latencyMs": 8883,
+   "tokens": {
+    "input": 10,
+    "output": 566,
+    "cacheRead": 61349,
+    "cacheWrite": 19856,
+    "total": 81781
+   },
+   "costUsd": 0.01208934,
+   "turns": 4
+  },
+  {
+   "taskId": "write_strict_ste",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "low",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Strict STE passed: 40 sentences, all <= 20 words, 13 imperative steps.",
+   "latencyMs": 9071,
+   "tokens": {
+    "input": 6,
+    "output": 971,
+    "cacheRead": 20499,
+    "cacheWrite": 18726,
+    "total": 40202
+   },
+   "costUsd": 0.00716954,
+   "turns": 2
+  },
+  {
+   "taskId": "code_distant_cause",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "medium",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Visible and hidden tests passed. HIDDEN CONFIG TESTS PASSED",
+   "latencyMs": 8093,
+   "tokens": {
+    "input": 8,
+    "output": 812,
+    "cacheRead": 40268,
+    "cacheWrite": 19061,
+    "total": 60149
+   },
+   "costUsd": 0.009698479999999999,
+   "turns": 3
+  },
+  {
+   "taskId": "code_interval_merge",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "medium",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Visible and hidden tests passed. HIDDEN INTERVAL TESTS PASSED",
+   "latencyMs": 5758,
+   "tokens": {
+    "input": 8,
+    "output": 469,
+    "cacheRead": 39614,
+    "cacheWrite": 18181,
+    "total": 58272
+   },
+   "costUsd": 0.008221840000000001,
+   "turns": 3
+  },
+  {
+   "taskId": "code_thread_field",
+   "strategy": "model:anthropic/claude-sonnet-5.5",
+   "modelUsed": "anthropic/claude-sonnet-5.5",
+   "thinkingUsed": "medium",
+   "correct": true,
+   "passed": true,
+   "timedOut": false,
+   "verifierOutput": "Visible and hidden tests passed. HIDDEN EVENT TESTS PASSED",
+   "latencyMs": 11716,
+   "tokens": {
+    "input": 8,
+    "output": 1064,
+    "cacheRead": 40235,
+    "cacheWrite": 19094,
+    "total": 60401
+   },
+   "costUsd": 0.010701200000000001,
+   "turns": 3
+  }
+ ]
+}
