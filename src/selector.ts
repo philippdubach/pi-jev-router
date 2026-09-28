@@ -70,22 +70,26 @@ export type WorkKind = "planning" | "code" | "writing" | "other";
 /**
  * Minimum Artificial Analysis intelligence index for planning. It is an
  * absolute score, because a percentile moves each time the catalog adds a
- * model. Placed in the gap from 49.6 (claude-fable-5) to 47.5 (gpt-6-sol).
- * Eligible on 26 September 2026: claude-opus-5.5 (57.6), claude-fable-5.1
- * (53.4), gpt-6-astra (52.7), claude-opus-5 (50.8) and claude-fable-5
- * (49.6). claude-sonnet-5 (38.2) is far below.
+ * model. It was 48.5 from 20 September 2026, in the gap from 49.6
+ * (claude-fable-5) to 47.5 (gpt-6-sol). The user lowered it to 44.5 on 28
+ * September 2026 because planning had 8 eligible models. It now sits from
+ * 44.8 (glm-5.3) to 44.3 (grok-4.6) and admits gpt-6-sol (47.5),
+ * gpt-5.6-sol (47.0), grok-4.7 (46.4), mimo-v2.6-pro (46.3), qwen3.8-max
+ * (45.4) and glm-5.3 (44.8). claude-sonnet-5 (38.2) is still below.
  */
-export const PLANNING_MIN_INTELLIGENCE = 48.5;
+export const PLANNING_MIN_INTELLIGENCE = 44.5;
 /**
  * A second, lower planning line for models with PROVEN_RUNS or more measured
  * planning runs. The user approved it on 27 September 2026, so that a model
- * measured at 4 of 4 does not stay out on one index point. Placed in the gap
- * among measured planners from 47.5 (gpt-6-sol, 4 of 4) to 41.8
- * (glm-5.3-flash). Below it, claude-sonnet-5 (38.2), deepseek-v4-flash-0731
- * (34.3) and ling-3.0-flash (no index) stay out, whatever they score on the
- * benchmark: the planning tasks are too few to outrank the policy.
+ * measured at 4 of 4 does not stay out on one index point. It was 44.5, in
+ * the gap among measured planners from 47.5 (gpt-6-sol) to 41.8
+ * (glm-5.3-flash). Lowered to 40 with the first line on 28 September 2026,
+ * which admits glm-5.3-flash (41.8, 5 of 5). Below it, claude-sonnet-5
+ * (38.2), deepseek-v4-flash-0731 (34.3) and ling-3.0-flash (no index) stay
+ * out, whatever they score on the benchmark: the planning tasks are too few
+ * to outrank the policy.
  */
-export const PLANNING_MEASURED_MIN_INTELLIGENCE = 44.5;
+export const PLANNING_MEASURED_MIN_INTELLIGENCE = 40;
 /**
  * Measured planning runs a model with no intelligence index needs, all of
  * them passed, to take planning work. Without an index neither line above

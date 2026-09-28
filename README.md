@@ -50,7 +50,7 @@ exist.
 
 | Work kind | Eligible models | Thinking |
 |---|---|---|
-| Planning | Artificial Analysis intelligence index of 48.5 or more; or 44.5 or more with 3 or more measured planning runs; or, for a model with no index, 4 or more measured planning runs, all passed | high |
+| Planning | Artificial Analysis intelligence index of 44.5 or more; or 40 or more with 3 or more measured planning runs; or, for a model with no index, 4 or more measured planning runs, all passed | high |
 | Code | every feasible model | medium |
 | Writing | any model with a writing Elo of 1760 or more, or 3 or more measured writing runs | low |
 | Other | every feasible model | medium |
@@ -60,10 +60,9 @@ directive. The thresholds sit in measured gaps; `src/selector.ts` records
 each gap next to its constant.
 
 On the current catalog and evidence, planning routes to
-`anthropic/claude-opus-5.5`, easy code to `inclusionai/ling-3.0-flash`,
+`z-ai/glm-5.3-flash`, easy code to `inclusionai/ling-3.0-flash`,
 hard code to `anthropic/claude-opus-5.5` and writing to
-`deepseek/deepseek-v4-flash-0731`. `openai/gpt-6-sol` is eligible for
-planning on its measured runs.
+`deepseek/deepseek-v4-flash-0731`.
 
 ## Commands
 
@@ -198,13 +197,13 @@ failure; both migration-plan runs timed out with no file. Runner pass counts dif
 went over the turn budget or timed out, mostly for `google/gemini-3.8-flash`.
 Earlier runs, from 20 to 25 September, are in `eval/results/`.
 
-## Policy decisions, 27 September 2026
+## Policy decisions, 27 and 28 September 2026
 
-- **Planning** also admits a model with an intelligence index of 44.5 or
-  more and 3 or more measured planning runs. The line sits in the gap among
-  measured planners from `openai/gpt-6-sol` (47.5, 4 of 4) to
-  `z-ai/glm-5.3-flash` (41.8). Without the second line, planning had one
-  candidate.
+- **Planning** (27 September) also admits a model with an intelligence
+  index above a second, lower line and 3 or more measured planning runs.
+  The line was 44.5, in the gap among measured planners from
+  `openai/gpt-6-sol` (47.5, 4 of 4) to `z-ai/glm-5.3-flash` (41.8). Without
+  the second line, planning had one candidate.
 - **Hard code** (complexity 2 or more) weighs cost like planning. With the
   code weights, `inclusionai/ling-3.0-flash` won at every complexity. The
   replay now sends 3 of 24 code tasks to `anthropic/claude-opus-5.5`.
@@ -213,10 +212,21 @@ Earlier runs, from 20 to 25 September, are in `eval/results/`.
 - **A model with no intelligence index** (for example `fireworks/ember-1`)
   can take planning on 4 or more measured planning runs, all passed. No
   index line can apply to it otherwise.
-  Ember-1 now qualifies. It is on the planning frontier but loses to
-  `anthropic/claude-opus-5.5` under the planning weights. On code,
+  Ember-1 now qualifies. It is on the planning frontier but loses under
+  the planning weights. On code,
   `openai/gpt-6-sol` dominates it: the same 10 of 10 from a higher prior,
   at a lower estimated cost.
+- **The planning lines are lower** (28 September). The unconditional line
+  goes from 48.5 to 44.5, from 44.8 (`z-ai/glm-5.3`) to 44.3
+  (`x-ai/grok-4.6`), and the measured line from 44.5 to 40. Feasible planning
+  models go from 8 to 14: `openai/gpt-5.6-sol`, `x-ai/grok-4.7`,
+  `xiaomi/mimo-v2.6-pro`, `qwen/qwen3.8-max-0902` and `z-ai/glm-5.3` enter
+  on their index, `z-ai/glm-5.3-flash` on its 5 of 5. `google/gemini-3.8-flash`
+  clears the measured line but its 2 of 4 fails the quality floor. The
+  planning pick moves from `anthropic/claude-opus-5.5` to `z-ai/glm-5.3-flash`
+  at every complexity, at about $0.01 per task against $0.34: the planning
+  weights prefer a measured 5 of 5 that cheap. The replay moves its one
+  planning task the same way.
 - **Writing is no longer OpenAI-only** (28 September). The vendor rule from
   20 September is dropped; the Elo line and the measured-runs door stay.
   Eligible writing models go from 7 to 24. The replay moves all 10 writing
@@ -225,7 +235,7 @@ Earlier runs, from 20 to 25 September, are in `eval/results/`.
 - **`anthropic/claude-sonnet-5.5`** (28 September) arrived on OpenRouter at
   $2/$10 per million tokens with no intelligence index yet. It qualifies for
   planning on its 4 of 4 and sits on the planning and code frontiers, at
-  about $0.08 per code task. It is never picked. Planning goes to Opus 5.5
+  about $0.08 per code task. It is never picked. Planning goes elsewhere
   under the planning weights. Code goes to `inclusionai/ling-3.0-flash` up to
   complexity 2 and to Opus 5.5 from there, so the mid-priced frontier
   members (Sonnet 5.5, `openai/gpt-6-sol`) are skipped at every complexity.

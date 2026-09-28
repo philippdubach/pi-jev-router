@@ -77,10 +77,10 @@ const easy = selectModel(env, cls(0), catalog, {}, "code");
 const hard = selectModel(env, cls(3), catalog, {}, "code");
 check("hard code costs at least as much as easy code", (hard.cEst ?? 0) >= (easy.cEst ?? 0), `${easy.modelId} ${hard.modelId}`);
 // --- planning: a second, lower line for measured planners (26 Sep decision) ---
-check("fixture: sol sits between the two planning lines",
-  47.5 >= PLANNING_MEASURED_MIN_INTELLIGENCE && 47.5 < PLANNING_MIN_INTELLIGENCE && 41.8 < PLANNING_MEASURED_MIN_INTELLIGENCE);
-const sol = model("openai/sol", 2e-6, 47.5);
-const flash = model("z-ai/flash", 1e-7, 41.8);
+check("fixture: mid sits between the two planning lines",
+  42 >= PLANNING_MEASURED_MIN_INTELLIGENCE && 42 < PLANNING_MIN_INTELLIGENCE && 38.2 < PLANNING_MEASURED_MIN_INTELLIGENCE);
+const sol = model("openai/sol", 2e-6, 42);
+const flash = model("z-ai/flash", 1e-7, 38.2);
 const runs = (n: number, p: number) => ({ runs: n, passes: p, meanCostUsd: 0.05, meanLatencyMs: 30000 });
 const measuredPlanners: EvidenceIndex = { "openai/sol": { planning: runs(4, 4) }, "z-ai/flash": { planning: runs(5, 5) } };
 check("a measured planner above the second line is eligible", roleEligible(sol, "planning", measuredPlanners));
